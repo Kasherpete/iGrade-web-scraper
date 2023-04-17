@@ -108,7 +108,7 @@ driver.find_element(By.ID, "187").click()
 
 # narrow down results
 time.sleep(1)
-assignments = driver.find_element(By.ID, "4173")
+assignments = driver.find_element(By.ID, "upcomingassignments").find_element(By.TAG_NAME, 'div').find_elements(By.TAG_NAME, 'div')[1]
 
 # get assignment columns
 assignments = assignments.find_elements(By.TAG_NAME, "tr")
@@ -119,7 +119,6 @@ i = 0
 
 # does this for each assignment column
 for assignment_tab in assignments:
-
     assignment_nibbles = assignment_tab.find_elements(By.TAG_NAME, "td")
 
     # if the assignment is valid and !blank
@@ -153,15 +152,12 @@ for assignment_tab in assignments:
 
             links = href_element.find_elements(By.TAG_NAME, 'tr')[8].find_elements(By.TAG_NAME, 'a')
             for link_element in links:
+                link_name = link_element.text
                 link_element.click()
                 time.sleep(.1)
                 link = driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
+                assignment_list[i]['assignments'] = {link_name: link}
                 time.sleep(.1)
-                print(link)
-
-
-
-
 
         except:
             pass
