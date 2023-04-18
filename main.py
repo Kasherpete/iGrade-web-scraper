@@ -219,6 +219,52 @@ class Client:
         return dic
 
 
-client = Client(credentials.igrade_username(), credentials.igrade_password())
-print(client.get_percentage_grades())
+    def get_account_info(self):
+
+        # get to the info page
+        self.__driver.get("https://igradeplus.com/student/myaccount")
+        time.sleep(1)
+
+        # prepare return data
+        dic = {}
+        dic['name'] = self.__driver.find_element(By.ID, "53").text
+        dic['username'] = self.__driver.find_element(By.ID, "124").text
+        dic['last_login'] = self.__driver.find_element(By.ID, "127").text
+        dic['email'] = self.__driver.find_element(By.ID, "130").text
+
+        self.__driver.get("https://igradeplus.com/student/myaccount")
+        time.sleep(1)
+
+        return dic
+
+
+    def get_announcements(self):
+
+        # NEEDS REWORK. BARELY FUNCTIONAL
+
+        title_list = []
+        date_list = []
+        name_list = []
+        dic = []
+
+        for i in range(1, 13):  # any more it does not work for some reason
+            title_list.append(self.__driver.find_element(By.XPATH, f'/html/body/div/div[3]/div[2]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[2]/div[1]/div/div/div[{i}]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/a').text)
+            date_list.append(self.__driver.find_element(By.XPATH, f'/html/body/div/div[3]/div[2]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[2]/div[1]/div/div/div[{i}]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/div[1]').text)
+            name_list.append(self.__driver.find_element(By.XPATH, f'/html/body/div/div[3]/div[2]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[2]/div[1]/div/div/div[{i}]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/div[2]').text)
+
+        for i in range(len(title_list)):
+            dic.append({
+                'title': title_list[i],
+                'date_posted': date_list[i],
+                'who_sent': name_list[i]
+
+            })
+
+        return dic
+
+
+
+
+client = Client(credentials.igrade_username(), credentials.igrade_password(), False, True)
+print(client.get_announcements())
 client.quit()
