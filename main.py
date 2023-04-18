@@ -1,176 +1,179 @@
-import json
+from selenium.common.exceptions import NoSuchElementException
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-import pytextnow
 import time
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
-import credentials
+from selenium.webdriver.chrome.options import Options
+import credentials  # delete when done
 
 
-def print_stuff():
-    # email addresses
-    sender = credentials.email_username()  # same as username
-    receiver = credentials.email_to_send_to()
+class Client:
 
-    # create message container
-    msg = MIMEMultipart()
+    def __init__(self, username, password, headless=True, debug=False):
 
-    # set message headers
-    msg['From'] = sender
-    msg['To'] = receiver
-    msg['Subject'] = 'Email with Attachment'
+        # keep from displaying on screen
+        self.__debug = debug
+        self.__log("Client init")
+        chrome_options = Options()
+        if headless:
+            self.__log("Headless mode enabled")
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument('--disable-gpu')
 
-    # set message body
-    body = 'Please find attached the file.'
-    msg.attach(MIMEText(body, 'plain'))
+        # init
+        self.__driver = webdriver.Chrome(options=chrome_options)
+        self.__original_window = self.__driver.current_window_handle
+        self.__headless = headless
+        self.__log("Driver init")
 
-    # attach the file to the message
-    filename = 'files/sample.pdf'
-    attachment = open(filename, 'rb')
+        # go to main site
+        self.__driver.get("https://igradeplus.com/login/student")
 
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(attachment.read())
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+        # login
+        self.__driver.find_element(By.ID, "54").send_keys(username)
+        self.__driver.find_element(By.ID, "55").send_keys(password + "\n")
+        self.__log("Attempting log in...")
 
-    msg.attach(part)
+        # wait for things to load
+        time.sleep(1)
 
-    # establish a secure SMTP session
-    server = smtplib.SMTP('smtp.office365.com', 587)
-    server.starttls()
-
-    # login with your email and password
-    password = credentials.email_password()
-    server.login(sender, password)
-
-    # send the email
-    text = msg.as_string()
-    server.sendmail(sender, receiver, text)
-
-    # close the SMTP session
-    server.quit()
-
-
-# credentials
-textnow_username = credentials.textnow_username()
-textnow_sid = credentials.textnow_sid()
-textnow_csrf = credentials.textnow_csrf()
-
-person_number = credentials.personal_number()
-
-# initialization
-client = pytextnow.Client(textnow_username, textnow_sid, textnow_csrf)
-
-# webdriver init
-driver = webdriver.Chrome()
-original_window = driver.current_window_handle
-
-driver.get("https://igradeplus.com/login/student")
-
-# enter credentials
-driver.find_element(By.ID, "54").send_keys(credentials.igrade_username())
-driver.find_element(By.ID, "55").send_keys(credentials.igrade_password() + "\n")
-
-
-# get grades
-time.sleep(1)
-
-list1 = []
-for element in driver.find_elements(By.CLASS_NAME, "bluehilite"):
-    list1.append(element.text.split("\n"))
-
-dic = {}
-for item in list1:
-    dic[item[0]] = item[1][1:2]
-
-print(dic)
-grades_text = "Grades: "
-
-for item in dic:
-    grades_text += f"{item}: {dic[item]}. "
-
-# client.send_sms(person_number, grades_text)
-
-
-# print_stuff("driver")
-
-
-# click assignments tab
-driver.find_element(By.ID, "Assignments").click()
-
-# click upcoming
-time.sleep(1)
-driver.find_element(By.ID, "187").click()
-
-# narrow down results
-time.sleep(1)
-assignments = driver.find_element(By.ID, "upcomingassignments").find_element(By.TAG_NAME, 'div').find_elements(By.TAG_NAME, 'div')[1]
-
-# get assignment columns
-assignments = assignments.find_elements(By.TAG_NAME, "tr")
-
-assignment_list = []
-
-i = 0
-
-# does this for each assignment column
-for assignment_tab in assignments:
-    assignment_nibbles = assignment_tab.find_elements(By.TAG_NAME, "td")
-
-    # if the assignment is valid and !blank
-    if len(assignment_nibbles[0].text) > 1:
-
-
-        # put values into list
-        assignment_list.append({})
-        assignment_list[i]['assignment'] = assignment_nibbles[0].text
-        assignment_list[i]['semester'] = assignment_nibbles[1].text
-        assignment_list[i]['assigned'] = assignment_nibbles[2].text
-        assignment_list[i]['due'] = assignment_nibbles[3].text
-        assignment_list[i]['type'] = assignment_nibbles[4].text
-        assignment_list[i]['class'] = assignment_nibbles[5].text
-        assignment_list[i]['category'] = assignment_nibbles[6].text
-        assignment_list[i]['value'] = assignment_nibbles[7].text
-        assignment_list[i]['notes'] = assignment_nibbles[8].text
-        assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME, 'a').get_attribute('href')
-
-        # switch to new window to get assignment file link
-        driver.switch_to.new_window('tab')
-        driver.get(assignment_list[i]['assignment_link'])
-
-        # narrow down results
-        if driver.find_element(By.ID, '197').tag_name == 'tbody':
-            href_element = driver.find_element(By.ID, '197')
-        else:
-            href_element = driver.find_element(By.ID, '198')
+        # check if logged in successful
+        logged_in = True
 
         try:
 
-            links = href_element.find_elements(By.TAG_NAME, 'tr')[8].find_elements(By.TAG_NAME, 'a')
-            for link_element in links:
-                link_name = link_element.text
-                link_element.click()
-                time.sleep(.1)
-                link = driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
-                assignment_list[i]['assignments'] = {link_name: link}
-                time.sleep(.1)
+            self.__driver.find_element(By.ID, "Assignments")
 
-        except:
-            pass
+        except NoSuchElementException:
 
-        # close window
-        driver.close()
-        driver.switch_to.window(original_window)
+            logged_in = False
+
+        if not logged_in:
+
+            self.__log("---SIGN IN WAS UNSUCCESSFUL---")
+            raise Exception("You entered the incorrect credentials, please try again.")
+
+        else:
+
+            self.__log("Sign in was successful.")
+
+    def quit(self):
+
+        self.__log("---DRIVER QUIT---")
+        self.__driver.quit()
+
+    def __log(self, content):
+
+        if self.__debug:
+            print("Igrade Client: " + content)
+
+    def get_letter_grades(self):
+
+        # makes list of user's grades in this format:
+        # 0: English - Mrs. Smith
+        # 1: A
+        # 2: Math - Mr. Dennis
+        # 3: C
+
+        list1 = []
+        for element in self.__driver.find_elements(By.CLASS_NAME, "bluehilite"):
+            list1.append(element.text.split("\n"))
+
+        # formats into dictionary:
+        # "English - Mrs. Smith": "A"
+        # "Math - Mr. Dennis": "C"
+
+        dic = {}
+        for item in list1:
+            dic[item[0]] = item[1][1:2]
+
+        return dic
+
+    def get_upcoming_assignments(self):
+
+        # click assignments tab
+        self.__driver.find_element(By.ID, "Assignments").click()
+
+        # click upcoming
+        time.sleep(1)
+        self.__driver.find_element(By.ID, "187").click()
+
+        # narrow down results
+        time.sleep(1)
+        assignments = \
+            self.__driver.find_element(By.ID, "upcomingassignments").find_element(By.TAG_NAME, 'div').find_elements(
+                By.TAG_NAME,
+                'div')[1]
+
+        # get assignment columns
+        assignments = assignments.find_elements(By.TAG_NAME, "tr")
+
+        assignment_list = []
+        i = 0
+
+        # does this for each assignment column
+        for assignment_tab in assignments:
+            assignment_nibbles = assignment_tab.find_elements(By.TAG_NAME, "td")
+
+            # if the assignment is valid and NOT BLANK
+            if len(assignment_nibbles[0].text) > 1:
+
+                # put assignment details into dictionary
+                assignment_list.append({})
+                assignment_list[i]['assignment'] = assignment_nibbles[0].text
+                assignment_list[i]['semester'] = assignment_nibbles[1].text
+                assignment_list[i]['assigned'] = assignment_nibbles[2].text
+                assignment_list[i]['due'] = assignment_nibbles[3].text
+                assignment_list[i]['type'] = assignment_nibbles[4].text
+                assignment_list[i]['class'] = assignment_nibbles[5].text
+                assignment_list[i]['category'] = assignment_nibbles[6].find_element(By.TAG_NAME, 'abbr').text
+                assignment_list[i]['value'] = assignment_nibbles[7].text
+                assignment_list[i]['notes'] = assignment_nibbles[8].text
+                assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME,
+                                                                                           'a').get_attribute('href')
+
+                # switch to new tab to get assignment file link(s)
+                self.__driver.switch_to.new_window('tab')
+                self.__driver.get(assignment_list[i]['assignment_link'])
+
+                # narrow down results. Sometimes the value is either 197 or 198,
+                # it depends on whether the teacher has a note or not
+                if self.__driver.find_element(By.ID, '197').tag_name == 'tbody':
+                    href_element = self.__driver.find_element(By.ID, '197')
+
+                else:
+
+                    href_element = self.__driver.find_element(By.ID, '198')
+
+                # get the assignment file link(s)
+                try:
+
+                    links = href_element.find_elements(By.TAG_NAME, 'tr')[8].find_elements(By.TAG_NAME, 'a')
+                    for link_element in links:
+                        link_name = link_element.text
+                        link_element.click()
+                        time.sleep(.1)
+                        link = \
+                        self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
+                            0].get_attribute('href')
+                        assignment_list[i]['assignments'] = {link_name: link}
+                        time.sleep(.1)
+
+                except:  # if major error just give up
+
+                    pass
+
+                # close window
+                self.__driver.close()
+                self.__driver.switch_to.window(self.__original_window)
+
+                i += 1
 
 
-        i += 1
+        self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
+        time.sleep(.5)
+
+        return assignment_list  # returns dictionary of assignment details
 
 
-print(assignment_list)
-print(json.dumps(assignment_list))
-
-time.sleep(20)
+client = Client(credentials.igrade_username(), credentials.igrade_password(), False, True)
+print(client.get_upcoming_assignments())
