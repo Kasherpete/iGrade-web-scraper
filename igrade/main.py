@@ -3,7 +3,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 from selenium.webdriver.chrome.options import Options
-import credentials  # delete when done
 
 
 class Client:
@@ -226,11 +225,12 @@ class Client:
         time.sleep(1)
 
         # prepare return data
-        dic = {}
-        dic['name'] = self.__driver.find_element(By.ID, "53").text
-        dic['username'] = self.__driver.find_element(By.ID, "124").text
-        dic['last_login'] = self.__driver.find_element(By.ID, "127").text
-        dic['email'] = self.__driver.find_element(By.ID, "130").text
+        dic = {
+               'name': self.__driver.find_element(By.ID, "53").text,
+               'username': self.__driver.find_element(By.ID, "124").text,
+               'last_login': self.__driver.find_element(By.ID, "127").text,
+               'email': self.__driver.find_element(By.ID, "130").text
+               }
 
         self.__driver.get("https://igradeplus.com/student/myaccount")
         time.sleep(1)
@@ -356,10 +356,3 @@ class Client:
         self.__driver.find_element(By.ID, "54").send_keys(username)
         self.__driver.find_element(By.ID, "55").send_keys(password + "\n")
         time.sleep(1)
-
-
-
-
-
-client = Client(credentials.igrade_username(), credentials.igrade_password(), False, True)
-client.quit()
