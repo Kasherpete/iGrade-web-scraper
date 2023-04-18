@@ -153,8 +153,8 @@ class Client:
                         link_element.click()
                         time.sleep(.1)
                         link = \
-                        self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
-                            0].get_attribute('href')
+                            self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
+                                0].get_attribute('href')
                         assignment_list[i]['assignments'] = {link_name: link}
                         time.sleep(.1)
 
@@ -168,12 +168,57 @@ class Client:
 
                 i += 1
 
-
         self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
-        time.sleep(.5)
+        time.sleep(1)
 
         return assignment_list  # returns dictionary of assignment details
 
+    def get_percentage_grades(self):
 
-client = Client(credentials.igrade_username(), credentials.igrade_password(), False, True)
-print(client.get_upcoming_assignments())
+        # go to classes tab
+        self.__driver.get("https://igradeplus.com/student/classes")
+        time.sleep(1)
+
+        # narrow down results
+        main_table = self.__driver.find_element(By.ID, "classes")
+        main_table = main_table.find_element(By.ID, '213')
+        main_table = main_table.find_element(By.TAG_NAME, "tbody")
+
+        # start parsing data
+        dic = []
+        i = 0
+
+        for table in main_table.find_elements(By.XPATH, "*"):  # for each table in the page
+
+            sections = table.find_elements(By.TAG_NAME, "td")  # each section in the table
+            dic.append({})  # get ready to add elements
+
+            try:
+
+                # fill in data
+                dic[i] = {
+                    "name": sections[0].text,
+                    "teacher": sections[1].text,
+                    "s1": sections[2].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text,
+                    "s2": sections[3].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text,
+                    "total": sections[4].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text
+                        }
+
+                i += 1
+
+            except NoSuchElementException:  # if end of class list
+
+                # delete last element created in the list so
+                # there is no extra empty item
+                dic.pop()
+                break
+
+        self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
+        time.sleep(1)
+
+        return dic
+
+
+client = Client(credentials.igrade_username(), credentials.igrade_password())
+print(client.get_percentage_grades())
+client.quit()
