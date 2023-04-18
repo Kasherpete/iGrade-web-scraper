@@ -348,8 +348,18 @@ class Client:
         return assignment_list  # returns dictionary of assignment details
 
 
+    def switch_account(self, username, password):
+
+        self.__driver.get('https://igradeplus.com/logout')
+        self.__driver.get("https://igradeplus.com/login/student")
+        time.sleep(1)
+        self.__driver.find_element(By.ID, "54").send_keys(username)
+        self.__driver.find_element(By.ID, "55").send_keys(password + "\n")
+        time.sleep(1)
+
+
+
 
 
 client = Client(credentials.igrade_username(), credentials.igrade_password(), False, True)
-print(client.get_problematic_assignments())
 client.quit()
