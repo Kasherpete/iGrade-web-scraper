@@ -263,8 +263,93 @@ class Client:
         return dic
 
 
+    def get_problematic_assignments(self):
+
+        # click assignments tab
+        self.__driver.find_element(By.ID, "Assignments").click()
+
+        # click upcoming
+        time.sleep(1)
+        self.__driver.find_element(By.ID, "191").click()
+
+        # narrow down results
+        time.sleep(1)
+        assignments = \
+            self.__driver.find_element(By.ID, "4204")
+
+        # get assignment columns
+        assignments = assignments.find_elements(By.TAG_NAME, "tr")
+
+        assignment_list = []
+        i = 0
+
+        # does this for each assignment column
+        for assignment_tab in assignments:
+            assignment_nibbles = assignment_tab.find_elements(By.TAG_NAME, "td")
+
+            # if the assignment is valid and NOT BLANK
+            if len(assignment_nibbles[0].text) > 1:
+
+                # put assignment details into dictionary
+                assignment_list.append({})
+                assignment_list[i]['assignment'] = assignment_nibbles[0].text
+                # fix status, returns empty string
+                assignment_list[i]['status'] = assignment_nibbles[1].get_attribute('title')
+                assignment_list[i]['current_grade'] = assignment_nibbles[3].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text
+                assignment_list[i]['semester'] = assignment_nibbles[4].text
+                assignment_list[i]['assigned'] = assignment_nibbles[5].text
+                assignment_list[i]['due'] = assignment_nibbles[6].text
+                assignment_list[i]['class'] = assignment_nibbles[8].text
+                assignment_list[i]['category'] = assignment_nibbles[9].text
+                assignment_list[i]['value'] = assignment_nibbles[10].text
+                assignment_list[i]['comments'] = assignment_nibbles[11].text
+                assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME, 'a').get_attribute('href')
+
+                # switch to new tab to get assignment file link(s)
+                self.__driver.switch_to.new_window('tab')
+                self.__driver.get(assignment_list[i]['assignment_link'])
+
+                # narrow down results. Sometimes the value is either 197 or 198,
+                # it depends on whether the teacher has a note or not
+                if self.__driver.find_element(By.ID, '197').tag_name == 'tbody':
+                    href_element = self.__driver.find_element(By.ID, '197')
+
+                else:
+
+                    href_element = self.__driver.find_element(By.ID, '198')
+
+                # get the assignment file link(s)
+                try:
+
+                    links = href_element.find_elements(By.TAG_NAME, 'tr')[8].find_elements(By.TAG_NAME, 'a')
+                    for link_element in links:
+                        link_name = link_element.text
+                        link_element.click()
+                        time.sleep(.1)
+                        link = \
+                            self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
+                                0].get_attribute('href')
+                        assignment_list[i]['assignments'] = {link_name: link}
+                        time.sleep(.1)
+
+                except:  # if major error just give up
+
+                    pass
+
+                # close window
+                self.__driver.close()
+                self.__driver.switch_to.window(self.__original_window)
+
+                i += 1
+
+        self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
+        time.sleep(1)
+
+        return assignment_list  # returns dictionary of assignment details
+
+
 
 
 client = Client(credentials.igrade_username(), credentials.igrade_password(), False, True)
-print(client.get_announcements())
+print(client.get_problematic_assignments())
 client.quit()
