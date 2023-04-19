@@ -123,3 +123,16 @@ client.get_account_info()
 client.switch_account(username2, password2)
 client.get_account_info
 ```
+
+# TODO:
+1. [ ] make an option for a filter for get_upcoming_assignments
+2. [ ] fix get_announcements limit of 13
+3. [ ] do some major bug testing
+4. [ ] add get_all_assignments
+5. [ ] add get_current_classes and get_previous_classes
+# Changelog:
+* ***1.2*** - update readme
+
+* ***1.1*** - added readme
+
+* ***1.0*** - first release
