@@ -356,3 +356,7 @@ class Client:
         self.__driver.find_element(By.ID, "54").send_keys(username)
         self.__driver.find_element(By.ID, "55").send_keys(password + "\n")
         time.sleep(1)
+
+
+client = Client("peterkea000", 'Pet18591')
+print(client.get_announcements())
