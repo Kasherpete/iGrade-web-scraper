@@ -130,7 +130,11 @@ client.get_account_info
 3. [ ] do some major bug testing
 4. [ ] add get_all_assignments
 5. [ ] add get_current_classes and get_previous_classes
+6. [ ] add feature to allow user to download their assignment files
 # Changelog:
+
+* ***1.2.1*** - fixed minor bug with getting percentage grades, update readme
+
 * ***1.2*** - update readme
 
 * ***1.1*** - added readme
