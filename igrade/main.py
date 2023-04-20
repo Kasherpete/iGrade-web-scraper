@@ -361,5 +361,5 @@ class Client:
         time.sleep(1)
 
 
-client = Client("peterkea000", 'Pet18591')
+client = Client()
 print(client.get_announcements())
