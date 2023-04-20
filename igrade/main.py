@@ -209,7 +209,10 @@ class Client:
 
                 # delete last element created in the list so
                 # there is no extra empty item
-                dic.pop()
+
+
+                # found out this doesn't do anything
+                # dic.pop()
                 break
 
         self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
