@@ -62,10 +62,10 @@ for assignment in all_assignments:
     print(assignment['notes'])  # None
     print(assignment['assignment_link'])  # https://igradeplus.com/assignment-link
     
-    for link in list(assignment.values()):  # see below
-        print(link)
+    for link in assignment['assignments']:  # see below
+        print(link['name'])
+        print(link['link'])
     
-    # print(list(assignment.values())[i])
     # this right here has 0 or more downloadable assignment documents. These
     # links are pure document files. Since the teacher can upload multiple links,
     # it is put in a list-use the code above to iterate
@@ -75,8 +75,10 @@ for assignment in all_assignments:
 ```python
 
 # returns something like this:
-{'English - 11th grade':'F', 'Mrs Smith - Math':'D'}
-client.get_letter_grades()
+# [{'class': 'English - 11h grade', 'grade': 'D'}, {'class': 'Mrs Smith - Math', 'grade': 'B'}]
+grades = client.get_letter_grades()
+
+print(f'Your grade in {grades["class"]} is {grades["grade"]}.')
 ```
 ### get_percentage_grades:
 ```python
@@ -132,8 +134,9 @@ client.get_account_info
 5. [ ] add get_current_classes and get_previous_classes
 6. [ ] add feature to allow user to download their assignment files
 7. [ ] fix category and value sections returning None
-8. [ ] update way dictionaries are formatted
 # Changelog:
+* ***1.2.4*** - easy-to-use features updated
+
 * ***1.2.3*** - fix problematic assignments, update readme
 
 * ***1.2.1*** - fixed minor bug with getting percentage grades, update readme

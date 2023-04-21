@@ -81,9 +81,12 @@ class Client:
         # "English - Mrs. Smith": "A"
         # "Math - Mr. Dennis": "C"
 
-        dic = {}
+        dic = []
+        i = 0
         for item in list1:
-            dic[item[0]] = item[1][1:2]
+            dic.append({'class': item[0], 'grade': item[1][1:2]})
+
+            i += 1
 
         return dic
 
@@ -129,6 +132,7 @@ class Client:
                 assignment_list[i]['notes'] = assignment_nibbles[8].text
                 assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME,
                                                                                            'a').get_attribute('href')
+                assignment_list[i]['assignments'] = []
 
                 # switch to new tab to get assignment file link(s)
                 self.__driver.switch_to.new_window('tab')
@@ -154,7 +158,7 @@ class Client:
                         link = \
                             self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
                                 0].get_attribute('href')
-                        assignment_list[i]['assignments'] = {link_name: link}
+                        assignment_list[i]['assignments'].append({link_name: link})
                         time.sleep(.1)
 
                 except:  # if major error just give up
@@ -306,6 +310,7 @@ class Client:
                 assignment_list[i]['value'] = assignment_nibbles[10].text
                 assignment_list[i]['comments'] = assignment_nibbles[11].text
                 assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME, 'a').get_attribute('href')
+                assignment_list[i]['assignments'] = []
 
                 # switch to new tab to get assignment file link(s)
                 self.__driver.switch_to.new_window('tab')
@@ -331,7 +336,7 @@ class Client:
                         link = \
                             self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
                                 0].get_attribute('href')
-                        assignment_list[i]['assignments'] = {link_name: link}
+                        assignment_list[i]['assignments'].append({'name': link_name, 'link': link})
                         time.sleep(.1)
 
                 except:  # if major error just give up
@@ -361,4 +366,4 @@ class Client:
 
 
 client = Client()
-print(client.get_problematic_assignments())
+print(client.get_letter_grades())
