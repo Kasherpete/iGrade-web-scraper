@@ -131,7 +131,10 @@ client.get_account_info
 4. [ ] add get_all_assignments
 5. [ ] add get_current_classes and get_previous_classes
 6. [ ] add feature to allow user to download their assignment files
+7. [ ] fix category and value sections returning None
+8. [ ] update way dictionaries are formatted
 # Changelog:
+* ***1.2.3*** - fix problematic assignments, update readme
 
 * ***1.2.1*** - fixed minor bug with getting percentage grades, update readme
 

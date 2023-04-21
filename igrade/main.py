@@ -277,8 +277,7 @@ class Client:
 
         # narrow down results
         time.sleep(1)
-        assignments = \
-            self.__driver.find_element(By.ID, "4204")
+        assignments = self.__driver.find_element(By.XPATH, "/html/body/div/div[3]/div[2]/div/div[2]/div[4]/div/section/div/div/div[2]/div/div/div/table/tbody")
 
         # get assignment columns
         assignments = assignments.find_elements(By.TAG_NAME, "tr")
@@ -362,4 +361,4 @@ class Client:
 
 
 client = Client()
-print(client.get_announcements())
+print(client.get_problematic_assignments())
