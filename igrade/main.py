@@ -1,369 +1,419 @@
-from selenium.common.exceptions import NoSuchElementException
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
-from selenium.webdriver.chrome.options import Options
+from requests import session
+from bs4 import BeautifulSoup
+from sys import modules
+
 
 
 class Client:
 
-    def __init__(self, username, password, headless=True, debug=False):
+    def __init__(self):
 
-        # keep from displaying on screen
-        self.__debug = debug
-        self.__log("Client init")
-        chrome_options = Options()
-        if headless:
-            self.__log("Headless mode enabled")
-            chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--disable-gpu')
+        if 'lxml' not in modules:
+            raise Exception("'lxml' has not been imported. Type 'pip install lxml' to fix this issue.")
+        if 'bs4' not in modules:
+            raise Exception("'bs4' has not been imported. Type 'pip install bs4' to fix this issue.")
+        if 'requests' not in modules:
+            raise Exception("'requests' has not been imported. Type 'pip install requests' to fix this issue.")
 
-        # init
-        self.__driver = webdriver.Chrome(options=chrome_options)
-        self.__original_window = self.__driver.current_window_handle
-        self.__headless = headless
-        self.__log("Driver init")
+        self.serverid = ''
+        self.sessionid = ''
+        self.loggedin = False
 
-        # go to main site
-        self.__driver.get("https://igradeplus.com/login/student")
+        # session used for speed and keep cookies the same across requests
+        self.session = session()
+        self.session.headers = {
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"}
 
-        # login
-        self.__driver.find_element(By.ID, "54").send_keys(username)
-        self.__driver.find_element(By.ID, "55").send_keys(password + "\n")
-        self.__log("Attempting log in...")
+    def login_with_credentials(self, username: str, password: str):
 
-        # wait for things to load
-        time.sleep(1)
+        # get pageid
+        pageid = str(
+            BeautifulSoup(self.session.get("https://igradeplus.com/login/student").text, 'lxml').find_all("head")[
+                0].get('id'))
 
-        # check if logged in successful
-        logged_in = True
+        # verify to server pageid
+        self.__send_ajax_verify(pageid)
 
-        try:
+        # get login tokens
+        self.__send_ajax_login2(username, password, pageid, '53')
 
-            self.__driver.find_element(By.ID, "Assignments")
+        # save login tokens
+        self.sessionid = self.session.cookies['JSESSIONID']
+        self.serverid = self.session.cookies['SERVERID']
 
-        except NoSuchElementException:
+        if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find('title').text == 'iGradePlus SMS':
 
-            logged_in = False
-
-        if not logged_in:
-
-            self.__log("---SIGN IN WAS UNSUCCESSFUL---")
-            raise Exception("You entered the incorrect credentials, please try again.")
-
+            self.loggedin = True
         else:
+            raise Exception('Incorrect credentials.')
 
-            self.__log("Sign in was successful.")
+    def login_with_token(self, sessionid: str, serverid: str):
 
-    def quit(self):
+        self.sessionid = sessionid
+        self.serverid = serverid
 
-        self.__log("---DRIVER QUIT---")
-        self.__driver.quit()
+        # set cookies
+        self.session.cookies.set('SERVERID', serverid, domain="igradeplus.com")
+        self.session.cookies.set('JSESSIONID', sessionid, domain="igradeplus.com")
 
-    def __log(self, content):
+        if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find(
+                'title').text == 'iGradePlus SMS':
 
-        if self.__debug:
-            print("Igrade Client: " + content)
+            self.loggedin = True
+        else:
+            raise Exception('Incorrect credentials.')
 
-    def get_letter_grades(self):
+    def __send_ajax(self, pageid: str, event: str):
 
-        # makes list of user's grades in this format:
-        # 0: English - Mrs. Smith
-        # 1: A
-        # 2: Math - Mr. Dennis
-        # 3: C
+        self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        {
+            'callback': '',
+            'pageid': pageid,
+            'sourceid': str(event),
+            'targetid': str(event),
+            'event': '30'
+        })
 
-        list1 = []
-        for element in self.__driver.find_elements(By.CLASS_NAME, "bluehilite"):
-            list1.append(element.text.split("\n"))
+    def __send_ajax_login(self, name: str, value: str, pageid: str, event: str):
 
-        # formats into dictionary:
-        # "English - Mrs. Smith": "A"
-        # "Math - Mr. Dennis": "C"
+        self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        {
+            'name': name,
+            'value': value,
+            'pageid': pageid,
+            'sourceid': event,
+            'targetid': event,
+            'event': '13'
+        })
 
-        dic = []
+    def __send_ajax_login2(self, username: str, password: str, pageid: str, event: str):
+
+        self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        {
+            'username[]': username,
+            'password[]': password,
+            'pageid': pageid,
+            'sourceid': str(event),
+            'targetid': str(event),
+            'event': '200'
+        })
+
+    def __send_ajax_verify(self, pageid: str):
+        self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data={
+            'utcoffset': '300',
+            'pixelratio': '2',
+            'screenwidth': '2048',
+            'screenheight': '1152',
+            'winwidth': '1072',
+            'winheight': '939',
+            'docwidth': '1072',
+            'docheight': '943',
+            'orientation': 'portrait',
+            'pageid': pageid,
+            'sourceid': None,
+            'targetid': None,
+            'event': '40'
+        })
+
+    def __get_home_page_raw(self):
+
+        return self.session.get('https://igradeplus.com/student/overview').text
+
+    def __get_assignments_raw(self, type: str):
+
+        pageid = str(
+            BeautifulSoup(self.session.get('https://igradeplus.com/student/assignments').text, 'lxml').find_all("head")[
+                0].get('id'))
+
+        self.__send_ajax(pageid, '165')
+
+        if type == "all":
+
+            return self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'callback': 'createtable',
+                'pageid': pageid,
+                'sourceid': 'allassignments',
+                'targetid': 'allassignments',
+                'event': '30'
+            }).text
+        elif type == "upcoming":
+
+            self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'clientX': '226',
+                'clientY': '132',
+                'pageid': pageid,
+                'sourceid': '187',
+                'targetid': '187',
+                'event': '1'
+            })
+
+            return self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'callback': 'createtable',
+                'pageid': pageid,
+                'sourceid': 'upcomingassignments',
+                'targetid': 'upcomingassignments',
+                'event': '30'
+            }).text
+
+        elif type == "recent":
+
+            self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'clientX': '334',
+                'clientY': '137',
+                'pageid': pageid,
+                'sourceid': '189',
+                'targetid': '189',
+                'event': '1'
+            })
+
+            return self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'callback': 'createtable',
+                'pageid': pageid,
+                'sourceid': 'recentassignments',
+                'targetid': 'recentassignments',
+                'event': '30'
+            }).text
+
+        elif type == "problematic":
+            self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'clientX': '417',  # HERE
+                'clientY': '130',
+                'pageid': pageid,
+                'sourceid': '191',
+                'targetid': '191',
+                'event': '1'
+            })
+
+            return self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+            {
+                'callback': 'createtable',
+                'pageid': pageid,
+                'sourceid': 'problematicassignments',
+                'targetid': 'problematicassignments',
+                'event': '30'
+            }).text
+
+    def __get_assignments(self, type: str):
+        html = self.__get_assignments_raw(type)
+
+        elements = []
+
+        soup = BeautifulSoup(html, 'lxml')
         i = 0
-        for item in list1:
-            dic.append({'class': item[0], 'grade': item[1][1:2]})
 
-            i += 1
+        for table in soup.find_all('tbody')[1].find_all('tr'):
 
-        return dic
+            try:
+                sections = table.find_all('td')
+                elements.append([])
+
+                elements[i].append(sections[0].text)
+                elements[i].append(f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}")
+                elements[i].append(sections[1].contents[0].get('title'))
+                element = sections[2].text
+
+                if element == "\xa0":
+                    elements[i].append("None")
+                else:
+                    elements[i].append(sections[2].text)
+
+                try:
+                    if sections[3].text[-3:] == '\xa0F\xa0':
+                        elements[i].append(str(sections[3].text)[:-3])
+
+                    else:
+                        elements[i].append(str(sections[3].text))
+
+                except AttributeError:
+                    elements[i].append('None')
+
+                elements[i].append(sections[4].text)
+
+                try:
+                    elements[i].append(sections[5].text)
+                except IndexError:
+                    elements[i].append('None')
+
+                try:
+                    elements[i].append(sections[6].text)
+                except IndexError:
+                    elements[i].append('None')
+
+                elements[i].append(sections[7].contents[0].get('title'))
+                element = sections[8].text
+
+                if element == "No Value":
+                    elements[i].append("None")
+                else:
+                    elements[i].append(sections[8].text)
+
+                elements[i].append(sections[9].contents[0].get('title'))
+                element = sections[10].text
+
+                if element == "\xa0":
+                    elements[i].append("None")
+                else:
+                    elements[i].append(sections[10].text)
+
+                try:
+                    elements[i].append(sections[11].text)
+                except IndexError:
+                    elements[i].append('')
+
+                i += 1
+
+            except AttributeError:
+
+                elements.pop()
+                break
+
+        return elements
+
+    def get_all_assignments(self):
+
+        self.__verify()
+        return self.__get_assignments('all')
 
     def get_upcoming_assignments(self):
 
-        # click assignments tab
-        self.__driver.find_element(By.ID, "Assignments").click()
+        self.__verify()
+        return self.__get_assignments('upcoming')
 
-        # click upcoming
-        time.sleep(1)
-        self.__driver.find_element(By.ID, "187").click()
+    def get_recent_assignments(self):
 
-        # narrow down results
-        time.sleep(1)
-        assignments = \
-            self.__driver.find_element(By.ID, "upcomingassignments").find_element(By.TAG_NAME, 'div').find_elements(
-                By.TAG_NAME,
-                'div')[1]
-
-        # get assignment columns
-        assignments = assignments.find_elements(By.TAG_NAME, "tr")
-
-        assignment_list = []
-        i = 0
-
-        # does this for each assignment column
-        for assignment_tab in assignments:
-            assignment_nibbles = assignment_tab.find_elements(By.TAG_NAME, "td")
-
-            # if the assignment is valid and NOT BLANK
-            if len(assignment_nibbles[0].text) > 1:
-
-                # put assignment details into dictionary
-                assignment_list.append({})
-                assignment_list[i]['assignment'] = assignment_nibbles[0].text
-                assignment_list[i]['semester'] = assignment_nibbles[1].text
-                assignment_list[i]['assigned'] = assignment_nibbles[2].text
-                assignment_list[i]['due'] = assignment_nibbles[3].text
-                assignment_list[i]['type'] = assignment_nibbles[4].text
-                assignment_list[i]['class'] = assignment_nibbles[5].text
-                assignment_list[i]['category'] = assignment_nibbles[6].find_element(By.TAG_NAME, 'abbr').text
-                assignment_list[i]['value'] = assignment_nibbles[7].text
-                assignment_list[i]['notes'] = assignment_nibbles[8].text
-                assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME,
-                                                                                           'a').get_attribute('href')
-                assignment_list[i]['assignments'] = []
-
-                # switch to new tab to get assignment file link(s)
-                self.__driver.switch_to.new_window('tab')
-                self.__driver.get(assignment_list[i]['assignment_link'])
-
-                # narrow down results. Sometimes the value is either 197 or 198,
-                # it depends on whether the teacher has a note or not
-                if self.__driver.find_element(By.ID, '197').tag_name == 'tbody':
-                    href_element = self.__driver.find_element(By.ID, '197')
-
-                else:
-
-                    href_element = self.__driver.find_element(By.ID, '198')
-
-                # get the assignment file link(s)
-                try:
-
-                    links = href_element.find_elements(By.TAG_NAME, 'tr')[8].find_elements(By.TAG_NAME, 'a')
-                    for link_element in links:
-                        link_name = link_element.text
-                        link_element.click()
-                        time.sleep(.1)
-                        link = \
-                            self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
-                                0].get_attribute('href')
-                        assignment_list[i]['assignments'].append({link_name: link})
-                        time.sleep(.1)
-
-                except:  # if major error just give up
-
-                    pass
-
-                # close window
-                self.__driver.close()
-                self.__driver.switch_to.window(self.__original_window)
-
-                i += 1
-
-        self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
-        time.sleep(1)
-
-        return assignment_list  # returns dictionary of assignment details
-
-    def get_percentage_grades(self):
-
-        # go to classes tab
-        self.__driver.get("https://igradeplus.com/student/classes")
-        time.sleep(1)
-
-        # narrow down results
-        main_table = self.__driver.find_element(By.ID, "classes")
-        main_table = main_table.find_element(By.ID, '213')
-        main_table = main_table.find_element(By.TAG_NAME, "tbody")
-
-        # start parsing data
-        dic = []
-        i = 0
-
-        for table in main_table.find_elements(By.XPATH, "*"):  # for each table in the page
-
-            sections = table.find_elements(By.TAG_NAME, "td")  # each section in the table
-            dic.append({})  # get ready to add elements
-
-            try:
-
-                # fill in data
-                dic[i] = {
-                    "name": sections[0].text,
-                    "teacher": sections[1].text,
-                    "s1": sections[2].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text,
-                    "s2": sections[3].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text,
-                    "total": sections[4].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text
-                        }
-
-                i += 1
-
-            except NoSuchElementException:  # if end of class list
-
-                # delete last element created in the list so
-                # there is no extra empty item
-
-
-                # found out this doesn't do anything
-                # dic.pop()
-                break
-
-        self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
-        time.sleep(1)
-
-        return dic
-
-
-    def get_account_info(self):
-
-        # get to the info page
-        self.__driver.get("https://igradeplus.com/student/myaccount")
-        time.sleep(1)
-
-        # prepare return data
-        dic = {
-               'name': self.__driver.find_element(By.ID, "53").text,
-               'username': self.__driver.find_element(By.ID, "124").text,
-               'last_login': self.__driver.find_element(By.ID, "127").text,
-               'email': self.__driver.find_element(By.ID, "130").text
-               }
-
-        self.__driver.get("https://igradeplus.com/student/myaccount")
-        time.sleep(1)
-
-        return dic
-
-
-    def get_announcements(self):
-
-        # NEEDS REWORK. BARELY FUNCTIONAL
-
-        title_list = []
-        date_list = []
-        name_list = []
-        dic = []
-
-        for i in range(1, 13):  # any more it does not work for some reason
-            title_list.append(self.__driver.find_element(By.XPATH, f'/html/body/div/div[3]/div[2]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[2]/div[1]/div/div/div[{i}]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/a').text)
-            date_list.append(self.__driver.find_element(By.XPATH, f'/html/body/div/div[3]/div[2]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[2]/div[1]/div/div/div[{i}]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/div[1]').text)
-            name_list.append(self.__driver.find_element(By.XPATH, f'/html/body/div/div[3]/div[2]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[2]/div[1]/div/div/div[{i}]/div/table/tbody/tr/td/table/tbody/tr/td[2]/div/div[1]/div[2]').text)
-
-        for i in range(len(title_list)):
-            dic.append({
-                'title': title_list[i],
-                'date_posted': date_list[i],
-                'who_sent': name_list[i]
-
-            })
-
-        return dic
-
+        self.__verify()
+        return self.__get_assignments('recent')
 
     def get_problematic_assignments(self):
 
-        # click assignments tab
-        self.__driver.find_element(By.ID, "Assignments").click()
+        self.__verify()
+        return self.__get_assignments('problematic')
 
-        # click upcoming
-        time.sleep(1)
-        self.__driver.find_element(By.ID, "191").click()
+    def get_account_info(self):
 
-        # narrow down results
-        time.sleep(1)
-        assignments = self.__driver.find_element(By.XPATH, "/html/body/div/div[3]/div[2]/div/div[2]/div[4]/div/section/div/div/div[2]/div/div/div/table/tbody")
+        self.__verify()
 
-        # get assignment columns
-        assignments = assignments.find_elements(By.TAG_NAME, "tr")
+        soup = BeautifulSoup(self.session.get("https://igradeplus.com/student/myaccount").text, 'lxml')
 
-        assignment_list = []
+        data = []
+        data.append(soup.find_all('tbody')[4].find_all('td')[1].text)
+
+        table = soup.find_all('tbody')[15]
+        data.append(table.find_all('td')[1].text)
+        data.append(table.find_all('td')[3].text)
+        data.append(table.find_all('td')[5].text)
+
+        return data
+
+    def get_announcements(self):
+
+        self.__verify()
+
+        html = self.session.post("https://igradeplus.com/student/overview").text
+        soup = BeautifulSoup(html, 'lxml')
+
+        data = []
+
         i = 0
+        for announcement in soup.find_all('td', attrs={
+            'style': 'vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '})[
+                            4:-1]:
+            data.append([])
+            data[i].append(announcement.find('a').text)
+            data[i].append(announcement.find_all('div')[2].text)
+            data[i].append(announcement.find_all('div')[3].text)
 
-        # does this for each assignment column
-        for assignment_tab in assignments:
-            assignment_nibbles = assignment_tab.find_elements(By.TAG_NAME, "td")
+            data[i].append(announcement.find('div', attrs={'class': 'fr-view'}).text)
 
-            # if the assignment is valid and NOT BLANK
-            if len(assignment_nibbles[0].text) > 1:
+            i += 1
 
-                # put assignment details into dictionary
-                assignment_list.append({})
-                assignment_list[i]['assignment'] = assignment_nibbles[0].text
-                # fix status, returns empty string
-                assignment_list[i]['status'] = assignment_nibbles[1].get_attribute('title')
-                assignment_list[i]['current_grade'] = assignment_nibbles[3].find_element(By.TAG_NAME, 'div').find_element(By.TAG_NAME, 'div').text
-                assignment_list[i]['semester'] = assignment_nibbles[4].text
-                assignment_list[i]['assigned'] = assignment_nibbles[5].text
-                assignment_list[i]['due'] = assignment_nibbles[6].text
-                assignment_list[i]['class'] = assignment_nibbles[8].text
-                assignment_list[i]['category'] = assignment_nibbles[9].text
-                assignment_list[i]['value'] = assignment_nibbles[10].text
-                assignment_list[i]['comments'] = assignment_nibbles[11].text
-                assignment_list[i]['assignment_link'] = assignment_nibbles[0].find_element(By.TAG_NAME, 'a').get_attribute('href')
-                assignment_list[i]['assignments'] = []
+        return data
 
-                # switch to new tab to get assignment file link(s)
-                self.__driver.switch_to.new_window('tab')
-                self.__driver.get(assignment_list[i]['assignment_link'])
+    def get_current_grades(self):
 
-                # narrow down results. Sometimes the value is either 197 or 198,
-                # it depends on whether the teacher has a note or not
-                if self.__driver.find_element(By.ID, '197').tag_name == 'tbody':
-                    href_element = self.__driver.find_element(By.ID, '197')
+        self.__verify()
 
-                else:
+        pageid = \
+        BeautifulSoup(self.session.get("https://igradeplus.com/student/classes").text, 'lxml').find_all("head")[0].get(
+            'id')
 
-                    href_element = self.__driver.find_element(By.ID, '198')
+        html = self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        {
+            'callback': 'createtable',
+            'pageid': pageid,
+            'sourceid': 'classes',
+            'targetid': 'classes',
+            'event': '30'
+        }).text
 
-                # get the assignment file link(s)
-                try:
+        data = []
+        i = 0
+        for row in BeautifulSoup(html, 'lxml').find_all('tbody')[1].find_all('tr', attrs={
+            'style': 'background: #FFFFFF; color: #6C6C6C; '}):
 
-                    links = href_element.find_elements(By.TAG_NAME, 'tr')[8].find_elements(By.TAG_NAME, 'a')
-                    for link_element in links:
-                        link_name = link_element.text
-                        link_element.click()
-                        time.sleep(.1)
-                        link = \
-                            self.__driver.find_element(By.CLASS_NAME, 'dialog-content').find_elements(By.TAG_NAME, 'a')[
-                                0].get_attribute('href')
-                        assignment_list[i]['assignments'].append({'name': link_name, 'link': link})
-                        time.sleep(.1)
+            data.append([])
+            data[i].append(row.find('a').text)
+            data[i].append(row.find_all('a')[1].text)
+            data[i].append(row.find_all('div')[1].text)
+            data[i].append(row.find_all('div')[4].text)
+            data[i].append(row.find_all('div')[7].text)
 
-                except:  # if major error just give up
+            i += 1
 
-                    pass
+        return data
 
-                # close window
-                self.__driver.close()
-                self.__driver.switch_to.window(self.__original_window)
+    def get_past_grades(self):
 
-                i += 1
+        self.__verify()
 
-        self.__driver.get("https://igradeplus.com/student/overview")  # return to main page
-        time.sleep(1)
+        pageid = BeautifulSoup(self.session.get("https://igradeplus.com/student/classes").text, 'lxml').find_all("head")[0].get('id')
 
-        return assignment_list  # returns dictionary of assignment details
+        self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        {
+            'clientX': '325',
+            'clientY': '136',
+            'pageid': pageid,
+            'sourceid': '188',
+            'targetid': '188',
+            'event': '1'
+        })
 
+        html = self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        {
+            'callback': 'createtable',
+            'pageid': pageid,
+            'sourceid': 'previousyears',
+            'targetid': 'previousyears',
+            'event': '30'
+        }).text
 
-    def switch_account(self, username, password):
+        data = []
+        i = 0
+        for row in BeautifulSoup(html, 'lxml').find_all('tbody')[1].find_all('tr', attrs={
+                'style': 'background: #FFFFFF; color: #6C6C6C; '}):
 
-        self.__driver.get('https://igradeplus.com/logout')
-        self.__driver.get("https://igradeplus.com/login/student")
-        time.sleep(1)
-        self.__driver.find_element(By.ID, "54").send_keys(username)
-        self.__driver.find_element(By.ID, "55").send_keys(password + "\n")
-        time.sleep(1)
+            data.append([])
+            data[i].append(row.find('a').text)
+            data[i].append(row.find_all('td')[1].text)
+            data[i].append(row.find_all('td')[2].text)
+            data[i].append(row.find_all('div')[1].text)
+            data[i].append(row.find_all('div')[4].text)
+            data[i].append(row.find_all('div')[6].text[:-3])
 
+            i += 1
 
-client = Client()
-print(client.get_letter_grades())
+        return data
+
+    def __verify(self):
+
+        if self.loggedin:
+            return
+
+        else:
+            raise Exception("Client is not logged in.")
