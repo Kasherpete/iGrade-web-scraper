@@ -15,9 +15,9 @@ class Client:
         if 'requests' not in modules:
             raise Exception("'requests' has not been imported. Type 'pip install requests' to fix this issue.")
 
-        self.serverid = ''
-        self.sessionid = ''
-        self.loggedin = False
+        self.serverid: str = ''
+        self.sessionid: str = ''
+        self.loggedin: bool = False
 
         # session used for speed and keep cookies the same across requests
         self.session = session()
@@ -200,6 +200,7 @@ class Client:
             }).text
 
     def __get_assignments(self, type: str):
+
         html = self.__get_assignments_raw(type)
 
         elements = []
@@ -211,65 +212,64 @@ class Client:
 
             try:
                 sections = table.find_all('td')
-                elements.append([])
+                elements.append({})
 
-                elements[i].append(sections[0].text)
-                elements[i].append(f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}")
-                elements[i].append(sections[1].contents[0].get('title'))
+                elements[i]['name'] = sections[0].text
+                elements[i]['link'] = f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}"
+                elements[i]['status'] = str.lower(sections[1].contents[0].get('title'))
                 element = sections[2].text
 
                 if element == "\xa0":
-                    elements[i].append("None")
+                    elements[i]['points'] = "ungraded"
                 else:
-                    elements[i].append(sections[2].text)
+                    elements[i]['points'] = sections[2].text
+
+                if sections[3].text == '\xa0':
+                    elements[i]['grade_percent'] = 'ungraded'
+                    elements[i]['grade_letter'] = 'ungraded'
+
+                else:
+                    elements[i]['grade_percent'] = sections[3].text[:-3]
+                    elements[i]['grade_letter'] = sections[3].text[-2:-1]
+
+                elements[i]['semester'] = sections[4].text
 
                 try:
-                    if sections[3].text[-3:] == '\xa0F\xa0':
-                        elements[i].append(str(sections[3].text)[:-3])
-
-                    else:
-                        elements[i].append(str(sections[3].text))
-
-                except AttributeError:
-                    elements[i].append('None')
-
-                elements[i].append(sections[4].text)
-
-                try:
-                    elements[i].append(sections[5].text)
+                    elements[i]['assigned'] = sections[5].text
                 except IndexError:
-                    elements[i].append('None')
+                    elements[i]['assigned'] = 'none'
 
                 try:
-                    elements[i].append(sections[6].text)
+                    elements[i]['due'] = sections[6].text
                 except IndexError:
-                    elements[i].append('None')
+                    elements[i]['due'] = 'none'
 
-                elements[i].append(sections[7].contents[0].get('title'))
+                elements[i]['type'] = sections[7].contents[0].get('title')
                 element = sections[8].text
 
                 if element == "No Value":
-                    elements[i].append("None")
+                    elements[i]['class'] = "none"
                 else:
-                    elements[i].append(sections[8].text)
+                    elements[i]['class'] = sections[8].text
 
-                elements[i].append(sections[9].contents[0].get('title'))
+                elements[i]['category'] = sections[9].contents[0].get('title')
                 element = sections[10].text
 
                 if element == "\xa0":
-                    elements[i].append("None")
+                    elements[i]['value'] = "none"
                 else:
-                    elements[i].append(sections[10].text)
+                    elements[i]['value'] = sections[10].text
 
                 try:
-                    elements[i].append(sections[11].text)
+                    elements[i]['comment'] = sections[11].text
                 except IndexError:
-                    elements[i].append('')
+                    elements[i]['comment']('')
 
                 i += 1
 
             except AttributeError:
 
+                # if assignment invalid
                 elements.pop()
                 break
 
