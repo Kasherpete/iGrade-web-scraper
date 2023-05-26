@@ -206,9 +206,9 @@ class Client:
         # better algorithm - covers all edge cases
         def is_past(date: str, due_in: int):
             try:
-                date = date.split('.')
-                now = str(datetime.datetime(*time.localtime()[:6]) + datetime.timedelta(days=due_in)).split(' ')[
-                    0].split('-')
+                date = list(date.split('.'))
+                now = list(str(datetime.datetime(*time.localtime()[:6]) + datetime.timedelta(days=due_in)).split(' ')[
+                    0].split('-'))
 
                 for j in range(3):
                     now[j] = int(now[j])
