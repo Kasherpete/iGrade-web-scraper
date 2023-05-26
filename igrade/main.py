@@ -1,3 +1,5 @@
+import datetime
+import time
 from requests import session
 from bs4 import BeautifulSoup
 from sys import modules
@@ -201,6 +203,34 @@ class Client:
 
     def __get_assignments(self, type: str):
 
+        # better algorithm - covers all edge cases
+        def is_past(date: str, due_in: int):
+            try:
+                date = date.split('.')
+                now = str(datetime.datetime(*time.localtime()[:6]) + datetime.timedelta(days=due_in)).split(' ')[
+                    0].split('-')
+
+                for j in range(3):
+                    now[j] = int(now[j])
+
+                for j in range(3):
+                    date[j] = int(date[j])
+            except ValueError:
+                return None
+
+            if now[0] > date[0]:
+                return True
+            elif now[0] == date[0] and now[1] > date[1]:
+                return True
+            elif now[0] == date[0] and now[1] == date[1] and now[2] > date[2]:
+                return True
+
+            return False
+
+        def is_between(date: str, due_in: int):
+            return is_past(date, due_in+1) and (not is_past(date, 0))
+
+
         html = self.__get_assignments_raw(type)
 
         elements = []
@@ -217,20 +247,6 @@ class Client:
                 elements[i]['name'] = sections[0].text
                 elements[i]['link'] = f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}"
                 elements[i]['status'] = str.lower(sections[1].contents[0].get('title'))
-                element = sections[2].text
-
-                if element == "\xa0":
-                    elements[i]['points'] = "ungraded"
-                else:
-                    elements[i]['points'] = sections[2].text
-
-                if sections[3].text == '\xa0':
-                    elements[i]['grade_percent'] = 'ungraded'
-                    elements[i]['grade_letter'] = 'ungraded'
-
-                else:
-                    elements[i]['grade_percent'] = sections[3].text[:-3]
-                    elements[i]['grade_letter'] = sections[3].text[-2:-1]
 
                 elements[i]['semester'] = sections[4].text
 
@@ -253,17 +269,77 @@ class Client:
                     elements[i]['class'] = sections[8].text
 
                 elements[i]['category'] = sections[9].contents[0].get('title')
-                element = sections[10].text
-
-                if element == "\xa0":
-                    elements[i]['value'] = "none"
-                else:
-                    elements[i]['value'] = sections[10].text
 
                 try:
                     elements[i]['comment'] = sections[11].text
                 except IndexError:
                     elements[i]['comment']('')
+
+                elements[i]['grade'] = {}
+
+                element = sections[2].text
+                if element == "\xa0":
+                    elements[i]['grade']['points'] = None
+                else:
+                    elements[i]['grade']['points'] = int(sections[2].text.split('.')[0])
+
+                if sections[3].text == '\xa0':
+                    elements[i]['grade']['percent'] = None
+                    elements[i]['grade']['letter'] = None
+
+                else:
+                    elements[i]['grade']['percent'] = sections[3].text[:-3]
+                    elements[i]['grade']['letter'] = sections[3].text[-2:-1]
+
+                element = sections[10].text
+                if element == "\xa0":
+                    elements[i]['grade']['value'] = None
+                else:
+                    elements[i]['grade']['value'] = int(sections[10].text.split('.')[0])
+
+                # try:
+                #     date = elements[i]['due'].split('.')
+                #     now = time.strftime("%Y.%m.%d", time.localtime()).split('.')
+                #
+                #     for j in range(3):
+                #         now[j] = int(now[j])
+                #
+                #     for j in range(3):
+                #         date[j] = int(date[j])
+                #
+                #     if now[0] > date[0] or now[1] > date[1] or now[2] > date[2]:
+                #         elements[i]['details'] = {'past_due': True}
+                #
+                #     else:
+                #         elements[i]['details'] = {'past_due': False}
+                #
+                # except ValueError:
+                #     elements[i]['details'] = {'past_due': None}
+
+                elements[i]['details'] = {'past_due': is_past(elements[i]['due'], 0)}
+
+                # try:
+                #     date = elements[i]['assigned'].split('.')
+                #     now = time.strftime("%Y.%m.%d", time.localtime()).split('.')
+                #
+                #     for j in range(3):
+                #         now[j] = int(now[j])
+                #
+                #     for j in range(3):
+                #         date[j] = int(date[j])
+                #
+                #     if now[0] > date[0] or now[1] > date[1] or now[2] > date[2]:
+                #         elements[i]['details']['has_been_assigned'] = True
+                #
+                #     else:
+                #         elements[i]['details']['has_been_assigned'] = False
+                #
+                # except ValueError:
+                #     elements[i]['details']['has_been_assigned'] = None
+
+                elements[i]['details']['has_been_assigned'] = is_past(elements[i]['assigned'], 0)
+                elements[i]['details']['due_tomorrow'] = is_between(elements[i]['due'], 1)
+                elements[i]['details']['due_in_week'] = is_between(elements[i]['due'], 7)
 
                 i += 1
 
@@ -301,13 +377,13 @@ class Client:
 
         soup = BeautifulSoup(self.session.get("https://igradeplus.com/student/myaccount").text, 'lxml')
 
-        data = []
-        data.append(soup.find_all('tbody')[4].find_all('td')[1].text)
+        data = {}
+        data['name'] = soup.find_all('tbody')[4].find_all('td')[1].text
 
         table = soup.find_all('tbody')[15]
-        data.append(table.find_all('td')[1].text)
-        data.append(table.find_all('td')[3].text)
-        data.append(table.find_all('td')[5].text)
+        data['username'] = table.find_all('td')[1].text
+        data['last_signed_in'] = table.find_all('td')[3].text
+        data['email'] = table.find_all('td')[5].text
 
         return data
 
@@ -324,12 +400,12 @@ class Client:
         for announcement in soup.find_all('td', attrs={
             'style': 'vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '})[
                             4:-1]:
-            data.append([])
-            data[i].append(announcement.find('a').text)
-            data[i].append(announcement.find_all('div')[2].text)
-            data[i].append(announcement.find_all('div')[3].text)
+            data.append({})
+            data[i]['title'] = announcement.find('a').text
+            data[i]['date'] = announcement.find_all('div')[2].text
+            data[i]['author'] = announcement.find_all('div')[3].text
 
-            data[i].append(announcement.find('div', attrs={'class': 'fr-view'}).text)
+            data[i]['content'] = announcement.find('div', attrs={'class': 'fr-view'}).text
 
             i += 1
 
@@ -357,12 +433,12 @@ class Client:
         for row in BeautifulSoup(html, 'lxml').find_all('tbody')[1].find_all('tr', attrs={
             'style': 'background: #FFFFFF; color: #6C6C6C; '}):
 
-            data.append([])
-            data[i].append(row.find('a').text)
-            data[i].append(row.find_all('a')[1].text)
-            data[i].append(row.find_all('div')[1].text)
-            data[i].append(row.find_all('div')[4].text)
-            data[i].append(row.find_all('div')[7].text)
+            data.append({})
+            data[i]['class'] = row.find('a').text
+            data[i]['teacher'] = row.find_all('a')[1].text
+            data[i]['s1'] = row.find_all('div')[1].text
+            data[i]['s2'] = row.find_all('div')[4].text
+            data[i]['total'] = row.find_all('div')[7].text
 
             i += 1
 
@@ -398,13 +474,13 @@ class Client:
         for row in BeautifulSoup(html, 'lxml').find_all('tbody')[1].find_all('tr', attrs={
                 'style': 'background: #FFFFFF; color: #6C6C6C; '}):
 
-            data.append([])
-            data[i].append(row.find('a').text)
-            data[i].append(row.find_all('td')[1].text)
-            data[i].append(row.find_all('td')[2].text)
-            data[i].append(row.find_all('div')[1].text)
-            data[i].append(row.find_all('div')[4].text)
-            data[i].append(row.find_all('div')[6].text[:-3])
+            data.append({})
+            data[i]['class'] = row.find('a').text
+            data[i]['teacher'] = row.find_all('td')[1].text
+            data[i]['years'] = row.find_all('td')[2].text
+            data[i]['s1'] = row.find_all('div')[1].text
+            data[i]['s2'] = row.find_all('div')[4].text
+            data[i]['total'] = row.find_all('div')[6].text[:-3]
 
             i += 1
 
