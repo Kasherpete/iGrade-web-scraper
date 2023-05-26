@@ -38,18 +38,15 @@ class Client:
         self.__send_ajax_verify(pageid)
 
         # get login tokens
-        self.__send_ajax_login2(username, password, pageid, '53')
+        if self.__send_ajax_login2(username, password, pageid, '53'):
+
+            self.loggedin = True
+        else:
+            raise Exception('Incorrect credentials.')
 
         # save login tokens
         self.sessionid = self.session.cookies['JSESSIONID']
         self.serverid = self.session.cookies['SERVERID']
-
-        # TODO- find another method. this takes too long - 1 second
-        if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find(
-                'title').text == 'iGradePlus SMS':
-            self.loggedin = True
-        else:
-            raise Exception('Incorrect credentials.')
 
     def login_with_token(self, sessionid: str, serverid: str):
 
@@ -60,8 +57,9 @@ class Client:
         self.session.cookies.set('SERVERID', serverid, domain="igradeplus.com")
         self.session.cookies.set('JSESSIONID', sessionid, domain="igradeplus.com")
 
-        # TODO - see above
-        if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find(
+
+        # I chose this url because it seems fastest
+        if BeautifulSoup(self.session.get('https://igradeplus.com/student/myaccount').text, 'lxml').find(
                 'title').text == 'iGradePlus SMS':
 
             self.loggedin = True
@@ -93,7 +91,7 @@ class Client:
 
     def __send_ajax_login2(self, username: str, password: str, pageid: str, event: str):
 
-        self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
+        if self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
         {
             'username[]': username,
             'password[]': password,
@@ -101,7 +99,10 @@ class Client:
             'sourceid': str(event),
             'targetid': str(event),
             'event': '200'
-        })
+        }).text[130:169] == 'https://igradeplus.com/student/overview':
+            return True
+
+        return False
 
     def __send_ajax_verify(self, pageid: str):
         self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data={
