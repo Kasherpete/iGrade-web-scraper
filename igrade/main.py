@@ -4,6 +4,8 @@ from requests import session
 from bs4 import BeautifulSoup
 from sys import modules
 
+# TODO: make get_attachments non-private again
+# TODO: make get_pageid function
 
 class Client:
 
@@ -66,15 +68,15 @@ class Client:
         else:
             raise Exception('Incorrect credentials.')
 
-    def __send_ajax(self, pageid: str, event: str):
+    def __send_ajax(self, pageid: str, id: str, event: str = '30'):
 
         self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
         {
             'callback': '',
             'pageid': pageid,
-            'sourceid': str(event),
-            'targetid': str(event),
-            'event': '30'
+            'sourceid': str(id),
+            'targetid': str(id),
+            'event': event
         })
 
     def __send_ajax_login(self, name: str, value: str, pageid: str, event: str):
@@ -539,6 +541,81 @@ class Client:
             'targetid': linkid,
             'event': '1'}
             ).text, 'lxml').find('a').get('href')
+
+            i += 1
+
+        return elements
+
+    def get_all_events(self):
+
+        pageid = self.session.get("https://igradeplus.com/student/communications/calendar").text[31:67]
+
+        self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+        'menuitem': 'School Year View',
+        'pageid': pageid,
+        'sourceid': '182',
+        'targetid': '182',
+        'event': '1000'
+        })
+
+        self.__send_ajax(pageid, '0', event='41')
+
+        html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+            'callback': '',
+            'pageid': pageid,
+            'sourceid': '12',
+            'targetid': '12',
+            'event': '30'
+        }).text
+
+        elements = []
+        soup = BeautifulSoup(html, 'lxml')
+
+        i = 0
+        for section in soup.find_all('div', style="color: #000000; background: #FFFFFF; padding-top: 10.0px; padding-right: 50.0px; padding-bottom: 10.0px; padding-left: 5.0px; border-top-style: solid; border-top-color: #F0F0F0; border-top-width: 1.0px; "):
+
+            day = section.find('a', style='font-size: 15px; font-weight: bold; color: #404040; text-decoration: none; line-height: 250%; ').text
+
+            for time in section.find_all('div')[::2]:
+
+                elements.append({'title': time.parent.next_sibling.next_sibling.text, 'date': day, 'time': time.text.replace('\xa0\xa0', ' ')})
+
+            i += 1
+
+        return elements
+
+    def get_upcoming_events(self):
+
+
+        pageid = self.session.get("https://igradeplus.com/student/communications/calendar").text[31:67]
+
+        self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+            'menuitem': 'Full Expanded View',
+            'pageid': pageid,
+            'sourceid': '145',
+            'targetid': '145',
+            'event': '1000'
+        })
+
+        html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+            'callback': '',
+            'pageid': pageid,
+            'sourceid': '12',
+            'targetid': '12',
+            'event': '30'
+        }).text
+
+        elements = []
+        soup = BeautifulSoup(html, 'lxml')
+
+        i = 0
+        for section in soup.find_all('td', style='vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '):
+            elements.append({})
+
+            elements[i]['title'] = section.find('span').text
+            elements[i]['date'] = section.find('div', style='width: 250.0px; padding-right: 15.0px; ').text
+            elements[i]['time'] = section.find('span', style='color: #000000; ').text
+            elements[i]['html'] = section.find('div', style='line-height: 200%; font-size: 12px; padding-top: 25.0px; padding-right: 50.0px; padding-bottom: 0.0px; padding-left: 0.0px; ')
 
             i += 1
 
