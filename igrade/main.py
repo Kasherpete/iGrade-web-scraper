@@ -4,8 +4,7 @@ from requests import session
 from bs4 import BeautifulSoup
 from sys import modules
 
-# TODO: make get_attachments non-private again
-# TODO: make get_pageid function
+
 
 class Client:
 
@@ -353,7 +352,7 @@ class Client:
                 elements[i]['details']['due_in_week'] = is_between(elements[i]['due'], 7)
 
                 if get_attachments:
-                    elements[i]['attachments'] = self.__get_attachments(elements[i]['link'])
+                    elements[i]['attachments'] = self.get_attachments(elements[i]['link'])
 
                 i += 1
 
@@ -514,7 +513,7 @@ class Client:
         else:
             raise Exception("Client is not logged in.")
 
-    def __get_attachments(self, url):
+    def get_attachments(self, url):
 
         html = self.session.get(url).text
         soup = BeautifulSoup(html, 'lxml')
@@ -548,17 +547,21 @@ class Client:
 
     def get_all_events(self):
 
-        pageid = self.session.get("https://igradeplus.com/student/communications/calendar").text[31:67]
+        html = self.session.get("https://igradeplus.com/student/communications/calendar").text
+        pageid = html[31:67]
+        targetid = BeautifulSoup(html, 'lxml').find('div', style='visibility: visible; position: relative; ').get('id')
 
         self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
         'menuitem': 'School Year View',
         'pageid': pageid,
-        'sourceid': '182',
-        'targetid': '182',
+        'sourceid': targetid,
+        'targetid': targetid,
         'event': '1000'
         })
 
-        self.__send_ajax(pageid, '0', event='41')
+        # self.__send_ajax(pageid, '0', event='41')
+
+        pageid = self.session.get("https://igradeplus.com/student/communications/calendar").text[31:67]
 
         html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
             'callback': '',
@@ -586,16 +589,21 @@ class Client:
 
     def get_upcoming_events(self):
 
-
-        pageid = self.session.get("https://igradeplus.com/student/communications/calendar").text[31:67]
+        html = self.session.get("https://igradeplus.com/student/communications/calendar").text
+        pageid = html[31:67]
+        targetid = BeautifulSoup(html, 'lxml').find('div', style='visibility: visible; position: relative; ').get('id')
 
         self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
             'menuitem': 'Full Expanded View',
             'pageid': pageid,
-            'sourceid': '145',
-            'targetid': '145',
+            'sourceid': targetid,
+            'targetid': targetid,
             'event': '1000'
         })
+
+        # self.__send_ajax(pageid, '0', '41')
+
+        pageid = self.session.get("https://igradeplus.com/student/communications/calendar").text[31:67]
 
         html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
             'callback': '',
@@ -620,3 +628,7 @@ class Client:
             i += 1
 
         return elements
+
+    def get_pageid(self, url):
+
+        return self.session.get(url).text[31:67]
