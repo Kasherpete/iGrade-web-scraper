@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 from sys import modules
 
 
-
 class Client:
 
     def __init__(self):
@@ -28,10 +27,12 @@ class Client:
 
     def login_with_credentials(self, username: str, password: str):
 
-        # get pageid
-        pageid = str(
-            BeautifulSoup(self.session.get("https://igradeplus.com/login/student").text, 'lxml').find_all("head")[
-                0].get('id'))
+        # get pageid. if the code ever acts up its probably this,
+        # uncomment the line below if it does
+        pageid = self.session.get("https://igradeplus.com/login/student").text[31:67]
+
+        # pageid = str(BeautifulSoup(self.session.get("https://igradeplus.com/login/student").text, 'lxml').find_all("head")[0].get('id'))
+
 
         # verify to server pageid
         self.__send_ajax_verify(pageid)
@@ -43,8 +44,9 @@ class Client:
         self.sessionid = self.session.cookies['JSESSIONID']
         self.serverid = self.session.cookies['SERVERID']
 
-        if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find('title').text == 'iGradePlus SMS':
-
+        # TODO- find another method. this takes too long - 1 second
+        if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find(
+                'title').text == 'iGradePlus SMS':
             self.loggedin = True
         else:
             raise Exception('Incorrect credentials.')
@@ -58,6 +60,7 @@ class Client:
         self.session.cookies.set('SERVERID', serverid, domain="igradeplus.com")
         self.session.cookies.set('JSESSIONID', sessionid, domain="igradeplus.com")
 
+        # TODO - see above
         if BeautifulSoup(self.session.get('https://igradeplus.com/student/overview').text, 'lxml').find(
                 'title').text == 'iGradePlus SMS':
 
@@ -123,9 +126,13 @@ class Client:
 
     def __get_assignments_raw(self, type: str):
 
-        pageid = str(
-            BeautifulSoup(self.session.get('https://igradeplus.com/student/assignments').text, 'lxml').find_all("head")[
-                0].get('id'))
+        # get pageid. if the code ever acts up its probably this,
+        # uncomment the line below if it does
+        pageid = self.session.get("https://igradeplus.com/student/assignments").text[31:67]
+
+        # pageid = str(
+        #     BeautifulSoup(self.session.get('https://igradeplus.com/student/assignments').text, 'lxml').find_all("head")[
+        #         0].get('id'))
 
         self.__send_ajax(pageid, '165')
 
@@ -201,14 +208,14 @@ class Client:
                 'event': '30'
             }).text
 
-    def __get_assignments(self, type: str):
+    def __get_assignments(self, type: str, get_attachments: bool = False):
 
         # better algorithm - covers all edge cases
         def is_past(date: str, due_in: int):
             try:
                 date = list(date.split('.'))
                 now = list(str(datetime.datetime(*time.localtime()[:6]) + datetime.timedelta(days=due_in)).split(' ')[
-                    0].split('-'))
+                               0].split('-'))
 
                 for j in range(3):
                     now[j] = int(now[j])
@@ -220,16 +227,17 @@ class Client:
 
             if now[0] > date[0]:
                 return True
+
             elif now[0] == date[0] and now[1] > date[1]:
                 return True
+
             elif now[0] == date[0] and now[1] == date[1] and now[2] > date[2]:
                 return True
 
             return False
 
         def is_between(date: str, due_in: int):
-            return is_past(date, due_in+1) and (not is_past(date, 0))
-
+            return is_past(date, due_in + 1) and (not is_past(date, 0))
 
         html = self.__get_assignments_raw(type)
 
@@ -341,6 +349,9 @@ class Client:
                 elements[i]['details']['due_tomorrow'] = is_between(elements[i]['due'], 1)
                 elements[i]['details']['due_in_week'] = is_between(elements[i]['due'], 7)
 
+                if get_attachments:
+                    elements[i]['attachments'] = self.__get_attachments(elements[i]['link'])
+
                 i += 1
 
             except AttributeError:
@@ -351,25 +362,25 @@ class Client:
 
         return elements
 
-    def get_all_assignments(self):
+    def get_all_assignments(self, get_attachments: bool = False):
 
         self.__verify()
-        return self.__get_assignments('all')
+        return self.__get_assignments('all', get_attachments=get_attachments)
 
-    def get_upcoming_assignments(self):
-
-        self.__verify()
-        return self.__get_assignments('upcoming')
-
-    def get_recent_assignments(self):
+    def get_upcoming_assignments(self, get_attachments: bool = False):
 
         self.__verify()
-        return self.__get_assignments('recent')
+        return self.__get_assignments('upcoming', get_attachments=get_attachments)
 
-    def get_problematic_assignments(self):
+    def get_recent_assignments(self, get_attachments: bool = False):
 
         self.__verify()
-        return self.__get_assignments('problematic')
+        return self.__get_assignments('recent', get_attachments=get_attachments)
+
+    def get_problematic_assignments(self, get_attachments: bool = False):
+
+        self.__verify()
+        return self.__get_assignments('problematic', get_attachments=get_attachments)
 
     def get_account_info(self):
 
@@ -398,9 +409,10 @@ class Client:
 
         i = 0
         for announcement in soup.find_all('td', attrs={
-            'style': 'vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '})[
-                            4:-1]:
+            'style': 'vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '})[4:-1]:
+
             data.append({})
+
             data[i]['title'] = announcement.find('a').text
             data[i]['date'] = announcement.find_all('div')[2].text
             data[i]['author'] = announcement.find_all('div')[3].text
@@ -415,9 +427,11 @@ class Client:
 
         self.__verify()
 
-        pageid = \
-        BeautifulSoup(self.session.get("https://igradeplus.com/student/classes").text, 'lxml').find_all("head")[0].get(
-            'id')
+        # get pageid. if the code ever acts up its probably this,
+        # uncomment the line below if it does
+        pageid = self.session.get("https://igradeplus.com/student/classes").text[31:67]
+
+        # pageid = str(BeautifulSoup(self.session.get("https://igradeplus.com/student/classes").text, 'lxml').find_all("head")[0].get('id'))
 
         html = self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
         {
@@ -430,10 +444,12 @@ class Client:
 
         data = []
         i = 0
+
         for row in BeautifulSoup(html, 'lxml').find_all('tbody')[1].find_all('tr', attrs={
             'style': 'background: #FFFFFF; color: #6C6C6C; '}):
 
             data.append({})
+
             data[i]['class'] = row.find('a').text
             data[i]['teacher'] = row.find_all('a')[1].text
             data[i]['s1'] = row.find_all('div')[1].text
@@ -448,7 +464,7 @@ class Client:
 
         self.__verify()
 
-        pageid = BeautifulSoup(self.session.get("https://igradeplus.com/student/classes").text, 'lxml').find_all("head")[0].get('id')
+        pageid = self.session.get("https://igradeplus.com/student/classes").text[31:67]
 
         self.session.post("https://igradeplus.com/OorianAjaxEventHandler", data=
         {
@@ -472,9 +488,10 @@ class Client:
         data = []
         i = 0
         for row in BeautifulSoup(html, 'lxml').find_all('tbody')[1].find_all('tr', attrs={
-                'style': 'background: #FFFFFF; color: #6C6C6C; '}):
+            'style': 'background: #FFFFFF; color: #6C6C6C; '}):
 
             data.append({})
+
             data[i]['class'] = row.find('a').text
             data[i]['teacher'] = row.find_all('td')[1].text
             data[i]['years'] = row.find_all('td')[2].text
@@ -493,3 +510,35 @@ class Client:
 
         else:
             raise Exception("Client is not logged in.")
+
+    def __get_attachments(self, url):
+
+        html = self.session.get(url).text
+        soup = BeautifulSoup(html, 'lxml')
+
+        # get pageid. if the code ever acts up its probably this,
+        # uncomment the line below if it does
+        pageid = html[31:67]
+
+        # pageid = str(BeautifulSoup(self.session.get(url).text, 'lxml').find_all("head")[0].get('id'))
+
+        elements = []
+        i = 0
+        for link in soup.find_all('a', style='text-decoration: underline; cursor: pointer; '):
+
+            elements.append({})
+            linkid = link.get('id')
+            elements[i]['name'] = link.text
+
+            elements[i]['link'] = BeautifulSoup(self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+            'clientX': '1',
+            'clientY': '1',
+            'pageid': pageid,
+            'sourceid': linkid,
+            'targetid': linkid,
+            'event': '1'}
+            ).text, 'lxml').find('a').get('href')
+
+            i += 1
+
+        return elements
