@@ -1,6 +1,9 @@
 ## Readme currently in progress
 # Changelog:
 
+### 2023.5.27
+* ***2.3.4*** - Improved performance; updated get_announcements(); added assignment, class, and teacher id/link; method for announcement and event content; download_attachments; get_teacher_info()
+
 ### 2023.5.26
 * ***2.3.3*** - get_attachments() is no longer a private method in case user wants to get attachments on a case-by-case
 basis; small performance boost; fixed/improved method to get calendar events
