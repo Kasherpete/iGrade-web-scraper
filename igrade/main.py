@@ -355,6 +355,10 @@ class Client:
                 # except ValueError:
                 #     elements[i]['details']['has_been_assigned'] = None
 
+                if elements[i]['grade']['points'] is None:
+                    elements[i]['details']['graded'] = False
+                else:
+                    elements[i]['details']['graded'] = True
                 elements[i]['details']['has_been_assigned'] = is_past(elements[i]['assigned'], 0)
                 elements[i]['details']['in_class_assignment'] = elements[i]['due'] == elements[i]['assigned']
                 elements[i]['details']['due_tomorrow'] = is_between(elements[i]['due'], 1)

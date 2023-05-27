@@ -1,7 +1,18 @@
 ## Readme currently in progress
+
+- [ ] uploading documents
+- [ ] class analytics
+- [x] teacher info
+- [ ] attendance status
+- [ ] assignment filters
+- [ ] multithreading or async implementation for some data collection
+- [x] event/announcement content collection method
+
 # Changelog:
 
 ### 2023.5.27
+* ***2.3.5*** - Added "graded" assignment property
+
 * ***2.3.4*** - Improved performance; updated get_announcements(); added assignment, class, and teacher id/link; method for announcement and event content; download_attachments; get_teacher_info()
 
 ### 2023.5.26
