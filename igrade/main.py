@@ -762,3 +762,51 @@ class Client:
 
             i += 1
         return data
+
+    def get_attendance(self):
+
+        def get_rows(section):
+
+            data = []
+            i = 0
+
+            for row in section.find_all('tr', style='background: #FFFFFF; '):
+                column = row.find_all('td')
+                data.append({})
+
+                data[i]['class'] = column[0].text
+                data[i]['data'] = {}
+                data[i]['data']['present'] = int(column[1].text)
+                data[i]['data']['absent'] = int(column[2].text)
+                data[i]['data']['tardy'] = int(column[3].text)
+                data[i]['data']['excused'] = int(column[4].text)
+                data[i]['data']['virtual'] = int(column[5].text)
+
+                i += 1
+
+            return data
+
+        pageid = self.__get_pageid('https://igradeplus.com/student/attendance')
+
+        html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+            'callback': '',
+            'pageid': pageid,
+            'sourceid': '166',
+            'targetid': '166',
+            'event': '30'
+        }).text
+
+        soup = BeautifulSoup(html, 'lxml')
+        data = {}
+
+        section = soup.find('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')
+        data['total'] = get_rows(section)
+
+        section = soup.find_all('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')[1]
+        data['s1'] = get_rows(section)
+
+        section = soup.find_all('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')[2]
+        data['s2'] = get_rows(section)
+
+        return data
+
