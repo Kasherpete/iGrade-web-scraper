@@ -520,6 +520,8 @@ class Client:
 
             data[i]['class'] = row.find('a').text
             data[i]['teacher'] = row.find_all('a')[1].text
+            data[i]['link'] = f"https://igradeplus.com{row.find('a').get('href')}"
+            data[i]['id'] = row.find('a').get('href').split('id=')[1]
             data[i]['s1'] = row.find_all('div')[1].text
             data[i]['s2'] = row.find_all('div')[4].text
             data[i]['total'] = row.find_all('div')[7].text
@@ -942,7 +944,7 @@ class Client:
             string = element.find('div').get('style')
 
             data[i]['name'] = element.find('a').text
-            data[i]['link'] = f"https://igradeplus.com/student/teacher?id={element.find('a').get('href')}"
+            data[i]['link'] = f"https://igradeplus.com/student/teachers?id={element.find('a').get('href')}"
             data[i]['id'] = element.find('a').get('href').split('?id=')[1]
             data[i]['email'] = element.find('a', attrs={'class': 'email'}).text
             try:
@@ -1027,3 +1029,57 @@ class Client:
 
         return data
 
+    def get_class_performance(self):
+
+        async def get_performance(link, teacher, id):
+
+            html = await self.aiosession.get(link)
+            html = await html.text()
+
+            soup = BeautifulSoup(html, 'lxml')
+
+            soup = soup.find('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')
+            elements = []
+            i = 2
+
+            elements.append(teacher)
+            elements.append(id)
+
+            for row in soup.find_all('tr', style='background: #FFFFFF; '):
+
+                elements.append({})
+                data = row.find_all('td')
+
+                elements[i]['type'] = data[0].text
+                elements[i]['s1'] = data[1].text
+                elements[i]['s2'] = data[2].text
+                elements[i]['total'] = data[3].text
+
+                i += 1
+
+            return elements
+
+        async def main():
+
+            tasks = []
+            for i in range(len(links)):
+                tasks.append(asyncio.ensure_future(get_performance(links[i], teachers[i], ids[i])))
+
+            responses = await asyncio.gather(*tasks)
+            return responses
+
+        links = []
+        teachers = []
+        ids = []
+
+        for id in self.get_current_grades():
+            links.append(f"https://igradeplus.com/student/class/performance?id={id['id']}")
+            teachers.append(id['class'])
+            ids.append(id['id'])
+
+        loop = asyncio.get_event_loop()
+
+        results = loop.run_until_complete(main())
+        loop.close()
+
+        return results

@@ -1,16 +1,19 @@
 ## Readme currently in progress
 
-- [ ] uploading documents
-- [ ] class analytics
+- [ ] uploading documents - ***ON HOLD***
+- [x] class analytics
 - [x] teacher info
 - [x] attendance status
 - [ ] assignment filters
 - [x] multithreading or async implementation for some data collection
 - [x] event/announcement content collection method
+- [ ] small optimizations for imports and small functions
 
 # Changelog:
 
 ### 2023.5.30
+* ***2.4.1*** - Debug option for logging; class performance
+
 * ***2.4*** - Async rework for getting attachments and assignment pages
 
 ### 2023.5.27
