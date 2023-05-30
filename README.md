@@ -5,10 +5,13 @@
 - [x] teacher info
 - [x] attendance status
 - [ ] assignment filters
-- [ ] multithreading or async implementation for some data collection
+- [x] multithreading or async implementation for some data collection
 - [x] event/announcement content collection method
 
 # Changelog:
+
+### 2023.5.30
+* ***2.4*** - Async rework for getting attachments and assignment pages
 
 ### 2023.5.27
 * ***2.3.6*** - Added get_attendance() method

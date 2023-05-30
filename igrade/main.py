@@ -1,15 +1,29 @@
+import asyncio
 import datetime
 import re
 import time
+import json
+import aiohttp
 from requests import session
 from bs4 import BeautifulSoup
 from sys import modules
 import os
+import warnings
+import shutil
+from colorama import Fore, Style
+
+
+try:
+    shutil.rmtree('data')
+except FileNotFoundError:
+    pass
+
+warnings.simplefilter("ignore")
 
 
 class Client:
 
-    def __init__(self):
+    def __init__(self, debug=False):
 
         if 'lxml' not in modules:
             raise Exception("'lxml' has not been imported. Type 'pip install lxml' to fix this issue.")
@@ -27,8 +41,30 @@ class Client:
         self.session.headers = {
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"}
 
+        # self.aiosession = aiohttp.ClientSession()
+        self.is_logging = debug
+
+        self.log('CLIENT', 'client has started')
+
+    def log(self, message, content, color: str = 'none'):
+
+        if self.is_logging:
+            if color.lower() == 'red':
+                color = Fore.RED
+            elif color.lower() == 'green':
+                color = Fore.GREEN
+            elif color.lower() == 'yellow':
+                color = Fore.YELLOW
+            elif color.lower() == 'none':
+                color = Style.RESET_ALL
+            elif color.lower() == 'blue':
+                color = Fore.BLUE
+
+            print(f'[{color}{message}{Style.RESET_ALL}] {content}')
+
     def login_with_credentials(self, username: str, password: str):
 
+        self.log('LOGIN', 'logging in...')
         pageid = self.__get_pageid("https://igradeplus.com/login/student")
 
         # pageid = str(BeautifulSoup(self.session.get("https://igradeplus.com/login/student").text, 'lxml').find_all("head")[0].get('id'))
@@ -40,6 +76,8 @@ class Client:
         if self.__send_ajax_login2(username, password, pageid, '53'):
 
             self.loggedin = True
+            self.log('LOGIN', 'logged in', 'green')
+
         else:
             raise Exception('Incorrect credentials.')
 
@@ -47,7 +85,15 @@ class Client:
         self.sessionid = self.session.cookies['JSESSIONID']
         self.serverid = self.session.cookies['SERVERID']
 
+        self.aiosession = aiohttp.ClientSession(headers={
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+            'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'})
+
+        self.log('CLIENT', 'client sessions initialized.')
+
     def login_with_token(self, sessionid: str, serverid: str):
+
+        self.log('LOGIN', 'logging in...')
 
         self.sessionid = sessionid
         self.serverid = serverid
@@ -61,8 +107,16 @@ class Client:
                 'title').text == 'iGradePlus SMS':
 
             self.loggedin = True
+            self.log('LOGIN', 'logged in', 'green')
+
         else:
             raise Exception('Incorrect credentials.')
+
+        self.aiosession = aiohttp.ClientSession(headers={
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+            'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'})
+
+        self.log('CLIENT', 'client sessions initialized.')
 
     def __send_ajax(self, pageid: str, id: str, event: str = '30', return_: bool = False):
 
@@ -251,6 +305,10 @@ class Client:
         html = self.__get_assignments_raw(type)
 
         elements = []
+        if get_attachments:
+            links = []
+
+        self.log('CLIENT', f'getting {type} attachments.')
 
         soup = BeautifulSoup(html, 'lxml')
         i = 0
@@ -312,6 +370,7 @@ class Client:
                 element = sections[10].text
                 if element == "\xa0":
                     elements[i]['grade']['value'] = None
+
                 else:
                     elements[i]['grade']['value'] = int(sections[10].text.split('.')[0])
 
@@ -357,24 +416,45 @@ class Client:
 
                 if elements[i]['grade']['points'] is None:
                     elements[i]['details']['graded'] = False
+
                 else:
                     elements[i]['details']['graded'] = True
+
                 elements[i]['details']['has_been_assigned'] = is_past(elements[i]['assigned'], 0)
                 elements[i]['details']['in_class_assignment'] = elements[i]['due'] == elements[i]['assigned']
                 elements[i]['details']['due_tomorrow'] = is_between(elements[i]['due'], 1)
                 elements[i]['details']['due_in_week'] = is_between(elements[i]['due'], 8)
 
+
+
                 if get_attachments:
-                    elements[i]['attachments'] = self.get_attachments(elements[i]['link'])
+
+                    links.append(elements[i]['link'])
 
                 i += 1
 
             except AttributeError:
 
                 # if assignment invalid
+                self.log('ERROR', 'invalid assignment. removing from list.', 'yellow')
                 elements.pop()
                 break
 
+        if get_attachments:
+            response = self.__get_all_attachments(links)
+            i = 0
+
+            self.log('CLIENT', 'getting assignment page info.')
+
+            for assignment in response:
+                elements[i]['attachments'] = assignment['attachments']
+                elements[i]['description'] = assignment['description']
+                elements[i]['supplemental_info'] = assignment['supplemental_info']
+
+
+                i += 1
+
+        self.log('CLIENT', 'data returned successfully.', 'green')
         return elements
 
     def get_all_assignments(self, get_attachments: bool = False):
@@ -501,6 +581,8 @@ class Client:
 
     def get_attachments(self, assignment_id):
 
+        self.log('CLIENT', 'getting attachments.')
+
         html = self.session.get('https://igradeplus.com/student/assignment?id=' + assignment_id).text
         soup = BeautifulSoup(html, 'lxml')
 
@@ -510,15 +592,30 @@ class Client:
 
         # pageid = str(BeautifulSoup(self.session.get(url).text, 'lxml').find_all("head")[0].get('id'))
 
-        elements = []
+        elements = {'description': '', 'attachments': []}
         i = 0
+        try:
+            elements['description'] = soup.find('div', style='line-height: 160%; padding-top: 0.0px; padding-right: 25.0px; padding-bottom: 25.0px; padding-left: 10.0px; ').text
+        except AttributeError:
+            elements['description'] = None
+
+        data = ''
+        for section in soup.find('div', id='supplemental_info').find().children:
+            data += section.text + '\n\n'
+
+        if data != "There is no additional information for this assignment.\n\n":
+            elements['supplemental_info'] = data[:-2]
+        else:
+            elements['supplemental_info'] = None
+
         for link in soup.find_all('a', style='text-decoration: underline; cursor: pointer; '):
 
-            elements.append({})
+            elements['attachments'].append({'name': '', 'link': ''})
             linkid = link.get('id')
-            elements[i]['name'] = link.text
 
-            elements[i]['link'] = BeautifulSoup(self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+            elements['attachments'][i]['name'] = link.text
+
+            elements['attachments'][i]['link'] = BeautifulSoup(self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
                 'clientX': '1',
                 'clientY': '1',
                 'pageid': pageid,
@@ -530,6 +627,87 @@ class Client:
             i += 1
 
         return elements
+
+    def __get_all_attachments(self, links: list):
+
+        async def stuff(url):
+
+            self.log('CLIENT', 'getting extra assignment info.')
+
+            html = await self.aiosession.get(url)
+            html = await html.text()
+
+
+            soup = BeautifulSoup(html, 'lxml')
+
+            # get pageid. if the code ever acts up its probably this,
+            # uncomment the line below if it does
+            pageid = html[31:67]
+
+            # pageid = str(BeautifulSoup(self.session.get(url).text, 'lxml').find_all("head")[0].get('id'))
+
+            elements = {'description': '', 'attachments': []}
+            i = 0
+            try:
+                elements[
+                    'description'] = soup.find('div', style='line-height: 160%; padding-top: 0.0px; padding-right: 25.0px; padding-bottom: 25.0px; padding-left: 10.0px; ').text
+            except AttributeError:
+                pass
+
+            data = ''
+            try:
+                for section in soup.find('div', id='supplemental_info').find().children:
+                    data += section.text + '\n\n'
+
+                if data != "There is no additional information for this assignment.\n\n":
+                    elements['supplemental_info'] = data[:-2]
+                else:
+                    elements['supplemental_info'] = None
+            except AttributeError:
+                pass
+
+            for link in soup.find_all('a', style='text-decoration: underline; cursor: pointer; '):
+
+                elements['attachments'].append({'name': '', 'link': ''})
+                linkid = link.get('id')
+                elements['attachments'][i]['name'] = link.text
+
+                # this is causing a huge wait. make awaitlist and do more async stuff below
+
+                try:
+                    wait = await self.aiosession.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+                        'clientX': '1',
+                        'clientY': '1',
+                        'pageid': pageid,
+                        'sourceid': linkid,
+                        'targetid': linkid,
+                        'event': '1'}
+                    )
+                    elements['attachments'][i][
+                        'link'] = BeautifulSoup(await wait.text(), 'lxml').find('a').get('href')
+                except:
+                    self.log('ERROR', 'error occurred while sending oorian request.', 'yellow')
+
+            self.log('CLIENT', 'extra assignment info returned successfully.', 'green')
+            return elements
+
+        async def main():
+
+            tasks = []
+            for url in links:
+                tasks.append(asyncio.ensure_future(stuff(url)))
+
+            responses = await asyncio.gather(*tasks)
+            return responses
+
+        loop = asyncio.get_event_loop()
+
+        results = loop.run_until_complete(main())
+        loop.close()
+        
+        response = results
+
+        return response
 
     def get_all_events(self):
 
@@ -568,7 +746,14 @@ class Client:
             for time in section.find_all('div')[::2]:
 
                 title = time.parent.next_sibling.next_sibling
-                elements.append({'title': title.text, 'link': title.find().get('href'), 'id': title.find().get('href').split('?id=')[1], 'date': day.text, 'time': time.text.replace('\xa0\xa0', ' ')})
+                if time.text == 'All Day Event' or time.text == 'Time Not Specified':
+                    start_time = 'All Day'
+                    end_time = 'All Day'
+
+                else:
+                    start_time = time.text.split('to')[0][:-2]
+                    end_time = time.text.split('to')[1][2:]
+                elements.append({'title': title.text, 'link': f"https://igradeplus.com/student/communications/{title.find().get('href')}", 'id': title.find().get('href').split('?id=')[1], 'date': day.text, 'start_time': start_time, 'end_time': end_time})
 
             i += 1
 
@@ -609,9 +794,27 @@ class Client:
 
             elements[i]['title'] = section.find('span').text
             elements[i]['date'] = section.find('div', style='width: 250.0px; padding-right: 15.0px; ').text
-            elements[i]['time'] = section.find('span', style='color: #000000; ').text
+
+            text = section.find('span', style='color: #000000; ').text
+
+            if text == 'All Day':
+                elements[i]['start_time'] = 'All Day'
+                elements[i]['end_time'] = 'All Day'
+
+            else:
+                elements[i]['start_time'] = section.find('span', style='color: #000000; ').text.split('to')[0][:-2]
+                elements[i]['end_time'] = section.find('span', style='color: #000000; ').text.split('to')[1][2:]
+
             element = section.find('div', style='line-height: 200%; font-size: 12px; padding-top: 25.0px; padding-right: 50.0px; padding-bottom: 0.0px; padding-left: 0.0px; ')
-            elements[i]['content'] = {'text': element.text, 'html': element.prettify()}
+
+            data = ''
+            for item in element.children:
+
+                data += item.text + '\n\n'
+
+            data = data[:-2]
+
+            elements[i]['content'] = {'text': data, 'html': element.prettify()}
 
             i += 1
 
@@ -619,6 +822,7 @@ class Client:
 
     def __get_pageid(self, url):
 
+        # self.log('CLIENT', 'obtaining pageID')
         return self.session.get(url).text[31:67]
 
     def get_announcements(self, get_link=False):
@@ -663,7 +867,6 @@ class Client:
             for announcement in soup.find_all('td', style='vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '):
 
                 data.append({})
-                print(announcement.text)
 
                 data[i]['title'] = announcement.find('a').text
                 data[i]['link'] = announcement.find('a').get('href')
@@ -703,11 +906,12 @@ class Client:
 
         return data
 
-    def download_attachments(self, assignment_id, folder_location):
+    def download_attachments(self, assignment_id: str, folder_location: str = 'data'):
 
         response = []
+        self.log('CLIENT', 'downloading attachments...')
 
-        data = self.get_attachments(assignment_id)
+        data = self.get_attachments(assignment_id)['attachments']
 
         try:
             os.mkdir(folder_location)
@@ -721,6 +925,7 @@ class Client:
                 f.write(self.session.get(data[i]['link']).content)
                 response.append(f'{folder_location}/{data[i]["name"].replace(" ", "_")}')
 
+        self.log('CLIENT', 'download successful', 'green')
         return response
 
     def get_teachers_info(self):
@@ -762,6 +967,18 @@ class Client:
 
             i += 1
         return data
+
+    def close(self):
+
+        async def await_close():
+            await self.aiosession.close()
+
+        # self.aiosession.close()
+        self.log('CLIENT', 'closing client...')
+        self.session.close()
+
+        asyncio.run(await_close())
+        self.log('CLIENT', 'client closed.', 'green')
 
     def get_attendance(self):
 
