@@ -2,6 +2,7 @@ from asyncio import gather, ensure_future, get_event_loop, run
 from datetime import datetime, timedelta
 from re import search
 from time import localtime
+from json import dumps
 from aiohttp import ClientSession
 from requests import session
 from bs4 import BeautifulSoup
@@ -18,6 +19,52 @@ except FileNotFoundError:
     pass
 
 simplefilter("ignore")
+
+
+#     def upload_file(self, assignment_id):
+#
+#         pageid = 1#self.__get_pageid(f'https://igradeplus.com/student/assignment?id={assignment_id}')
+#
+#         # self.__send_ajax_verify(pageid)
+#
+#         # print(self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+#         #     'files[]': 'Untitled3.txt',
+#         #     'pageid': pageid,
+#         #     'sourceid': '145',
+#         #     'targetid': '145',
+#         #     'event': '27'
+#         # }).text)
+#
+#         dfile = open("Untitled6.txt", "rb").read()
+#
+#
+#         print(self.session.post('https://igradeplus.com/OorianFileUploadHandler', headers = {
+#             'Content-Type': '''multipart/form-data; boundary=----WebKitFormBoundaryZOX6UAUf3ZoweBou''',
+#             'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'
+#         }, data=(
+#             f'''------WebKitFormBoundaryZOX6UAUf3ZoweBou
+# Content-Disposition: form-data; name="pageid"
+#
+# {pageid}
+# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
+# Content-Disposition: form-data; name="eventid"
+#
+# 26
+# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
+# Content-Disposition: form-data; name="sourceid"
+#
+# 145
+# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
+# Content-Disposition: form-data; name="targetid"
+#
+# 145
+# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
+# Content-Disposition: form-data; name="upload_file"; filename="Untitled5.txt"
+# Content-Type: text/plain
+#
+# {dfile}
+# ------WebKitFormBoundaryZOX6UAUf3ZoweBou--'''
+#         )).text)
 
 
 class Client:
@@ -1204,3 +1251,9 @@ class Client:
         loop.close()
 
         return results
+
+
+client = Client(debug=True)
+client.login_with_credentials('peterkea000', 'Pet18591')
+print(dumps(client.get_all_assignments(assigned=('2023.4.10', 'now'))))
+client.close()

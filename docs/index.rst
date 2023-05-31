@@ -1,20 +1,15 @@
-.. iGrade-web-scraper documentation master file, created by
-   sphinx-quickstart on Wed May 31 16:23:20 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-Welcome to iGrade-web-scraper's documentation!
-==============================================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example HTML Page</title>
+</head>
+<body>
+    <h1>Hello, World!</h1>
+    <p>This is an example HTML page.</p>
+    <ul>
+        <li>Item 1</li>
+        <li>Item 2</li>
+        <li>Item 3</li>
+    </ul>
+</body>
+</html>
