@@ -271,20 +271,26 @@ class Client:
                 'event': '30'
             }).text
 
-    def __get_assignments(self, type: str, get_attachments: bool = False, name: str = '', grade: str=''):
+    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: str = '', assignment_type: str = '', category: str = '', class_: str = ''):
+
+        # name filter will get all assignments that include the string given. it is not case-sensitive and removes spaces and underscores.
+        # grade filter is two numbers from 0+. example: '50-100' gets all assignments from 50 to 100. assignments with null grades are always filtered if this filter is set.
+        # assignments_type filter. values can be 'extra credit', 'no value', or 'standard'. this is cleaned like the name filter. there are also more types than these 3.
+        # category filter gets assignments with a certain category. this is cleaned and can match either the abbreviation or the full category name in order for the assignment to stay. categories dependent on class.
 
         # better algorithm - covers all edge cases
         def is_past(date: str, due_in: int):
+
             try:
                 date = list(date.split('.'))
-                now = list(str(datetime(*localtime()[:6]) + timedelta(days=due_in)).split(' ')[
-                    0].split('-'))
+                now = list(str(datetime(*localtime()[:6]) + timedelta(days=due_in)).split(' ')[0].split('-'))
 
                 for j in range(3):
                     now[j] = int(now[j])
 
                 for j in range(3):
                     date[j] = int(date[j])
+
             except ValueError:
                 return None
 
@@ -302,13 +308,16 @@ class Client:
         def is_between(date: str, days: int):
             return is_past(date, days + 1) and (not is_past(date, 0))
 
-        html = self.__get_assignments_raw(type)
+        def clean(content: str):
+
+            return content.lower().replace(' ', '').replace('_', '')
+
+        html = self.__get_assignments_raw(get_type)
 
         elements = []
-        if get_attachments:
-            links = []
+        links = []
 
-        self.log('CLIENT', f'getting {type} attachments.')
+        self.log('CLIENT', f'getting {assignment_type} attachments.')
 
         soup = BeautifulSoup(html, 'lxml')
         i = 0
@@ -321,7 +330,7 @@ class Client:
 
                 # NAME ------
                 assignment_name = sections[0].text
-                print(name)
+
                 if name.lower().replace(' ', '') not in assignment_name.lower().replace(' ', ''):
                     # print(name.lower().replace(' ', '') + ' is not in ' + assignment_name.lower().replace(' ', ''))
                     elements.pop()
@@ -336,10 +345,45 @@ class Client:
                     assignment_percent = sections[3].text[:-3]
                     assignment_letter = sections[3].text[-2:-1]
 
-                if assignment_percent is not None and grade:
+                if grade:
+                    if assignment_percent is None:
+                        elements.pop()
+                        continue
+
                     if not (float(grade.split('-')[0]) <= float(assignment_percent[:-1]) <= float(grade.split('-')[1])):
                         elements.pop()
                         continue
+
+                # TYPE --------
+                this_assignment_type = sections[7].contents[0].get('title')
+
+                if assignment_type and (clean(assignment_type) != clean(this_assignment_type)):
+
+                    elements.pop()
+                    continue
+
+                # CATEGORY ---------
+                assignment_category_full = sections[9].contents[0].get('title')
+                assignment_category_abbr = sections[9].contents[0].text
+
+                if category:
+                    if (clean(category) not in clean(assignment_category_abbr)) and (clean(category) not in clean(assignment_category_abbr)):
+
+                        elements.pop()
+                        continue
+
+                # CLASS ----------
+                element = sections[8].text
+
+                if element == "No Value":
+                    assignment_class = "none"
+                else:
+                    assignment_class = sections[8].text
+
+                if class_ and (clean(class_) not in clean(assignment_class)):
+
+                    elements.pop()
+                    continue
 
                 elements[i]['name'] = assignment_name
                 elements[i]['link'] = f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}"
@@ -358,15 +402,11 @@ class Client:
                 except IndexError:
                     elements[i]['due'] = 'none'
 
-                elements[i]['type'] = sections[7].contents[0].get('title')
-                element = sections[8].text
+                elements[i]['type'] = this_assignment_type
+                elements[i]['class'] = assignment_class
 
-                if element == "No Value":
-                    elements[i]['class'] = "none"
-                else:
-                    elements[i]['class'] = sections[8].text
-
-                elements[i]['category'] = sections[9].contents[0].get('title')
+                elements[i]['category_full'] = assignment_category_full
+                elements[i]['category_abbreviation'] = assignment_category_abbr
 
                 try:
                     elements[i]['comment'] = sections[11].text
@@ -376,8 +416,10 @@ class Client:
                 elements[i]['grade'] = {}
 
                 element = sections[2].text
+
                 if element == "\xa0":
                     elements[i]['grade']['points'] = None
+
                 else:
                     elements[i]['grade']['points'] = int(sections[2].text.split('.')[0])
 
@@ -397,6 +439,7 @@ class Client:
                 #     elements[i]['grade']['letter'] = sections[3].text[-2:-1]
 
                 element = sections[10].text
+
                 if element == "\xa0":
                     elements[i]['grade']['value'] = None
 
@@ -455,7 +498,6 @@ class Client:
                 elements[i]['details']['due_in_week'] = is_between(elements[i]['due'], 8)
 
 
-
                 if get_attachments:
 
                     links.append(elements[i]['link'])
@@ -470,41 +512,43 @@ class Client:
                 break
 
         if get_attachments:
+
             response = self.__get_all_attachments(links)
             i = 0
 
             self.log('CLIENT', 'getting assignment page info.')
 
             for assignment in response:
+
                 elements[i]['attachments'] = assignment['attachments']
                 elements[i]['description'] = assignment['description']
                 elements[i]['supplemental_info'] = assignment['supplemental_info']
 
-
                 i += 1
 
         self.log('CLIENT', 'data returned successfully.', 'green')
+
         return elements
 
-    def get_all_assignments(self, get_attachments: bool = False, name='', grade=''):
+    def get_all_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
 
         self.__verify()
-        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade)
+        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
 
-    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade=''):
-
-        self.__verify()
-        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade)
-
-    def get_recent_assignments(self, get_attachments: bool = False, name='', grade=''):
+    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
 
         self.__verify()
-        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade)
+        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
 
-    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade=''):
+    def get_recent_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
 
         self.__verify()
-        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade)
+        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
+
+    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
+
+        self.__verify()
+        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
 
     def get_account_info(self):
 
@@ -629,7 +673,7 @@ class Client:
 
         # pageid = str(BeautifulSoup(self.session.get(url).text, 'lxml').find_all("head")[0].get('id'))
 
-        elements = {'description': '', 'attachments': []}
+        elements = {'description': '', 'attachments': [], 'supplemental_info': ''}
         i = 0
         try:
             elements['description'] = soup.find('div', style='line-height: 160%; padding-top: 0.0px; padding-right: 25.0px; padding-bottom: 25.0px; padding-left: 10.0px; ').text
@@ -683,7 +727,7 @@ class Client:
 
             # pageid = str(BeautifulSoup(self.session.get(url).text, 'lxml').find_all("head")[0].get('id'))
 
-            elements = {'description': '', 'attachments': []}
+            elements = {'description': '', 'attachments': [], 'supplemental_info': ''}
             i = 0
             try:
                 elements[

@@ -7,19 +7,21 @@
 - [ ] assignment filters
 - [x] multithreading or async implementation for some data collection
 - [x] event/announcement content collection method
-- [ ] small optimizations for imports and small functions
+- [x] small optimizations for imports and small functions
 
 ### Filters:
 - [x] Name
 - [x] grade
 - [ ] due, assigned
-- [ ] type
-- [ ] category
-- [ ] class
+- [x] type
+- [x] category
+- [x] class
 
 # Changelog:
 
 ### 2023.5.31
+* ***2.4.4*** - Warning fixes; type, category, and grade filters
+
 * ***2.4.3*** - Import optimizations; error handling
 
 ### 2023.5.30
