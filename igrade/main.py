@@ -1,24 +1,24 @@
-import asyncio
-import datetime
-import re
-import time
-import json
-import aiohttp
+from asyncio import gather, ensure_future, get_event_loop, run
+from datetime import datetime, timedelta
+from re import search
+from time import localtime
+from json import dumps
+from aiohttp import ClientSession
 from requests import session
 from bs4 import BeautifulSoup
 from sys import modules
-import os
-import warnings
-import shutil
+from os import mkdir
+from warnings import simplefilter
+from shutil import rmtree
 from colorama import Fore, Style
 
 
 try:
-    shutil.rmtree('data')
+    rmtree('data')
 except FileNotFoundError:
     pass
 
-warnings.simplefilter("ignore")
+simplefilter("ignore")
 
 
 class Client:
@@ -85,7 +85,7 @@ class Client:
         self.sessionid = self.session.cookies['JSESSIONID']
         self.serverid = self.session.cookies['SERVERID']
 
-        self.aiosession = aiohttp.ClientSession(headers={
+        self.aiosession = ClientSession(headers={
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
             'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'})
 
@@ -112,7 +112,7 @@ class Client:
         else:
             raise Exception('Incorrect credentials.')
 
-        self.aiosession = aiohttp.ClientSession(headers={
+        self.aiosession = ClientSession(headers={
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
             'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'})
 
@@ -271,13 +271,13 @@ class Client:
                 'event': '30'
             }).text
 
-    def __get_assignments(self, type: str, get_attachments: bool = False):
+    def __get_assignments(self, type: str, get_attachments: bool = False, name: str = '', grade: str=''):
 
         # better algorithm - covers all edge cases
         def is_past(date: str, due_in: int):
             try:
                 date = list(date.split('.'))
-                now = list(str(datetime.datetime(*time.localtime()[:6]) + datetime.timedelta(days=due_in)).split(' ')[
+                now = list(str(datetime(*localtime()[:6]) + timedelta(days=due_in)).split(' ')[
                     0].split('-'))
 
                 for j in range(3):
@@ -319,7 +319,29 @@ class Client:
                 sections = table.find_all('td')
                 elements.append({})
 
-                elements[i]['name'] = sections[0].text
+                # NAME ------
+                assignment_name = sections[0].text
+                print(name)
+                if name.lower().replace(' ', '') not in assignment_name.lower().replace(' ', ''):
+                    # print(name.lower().replace(' ', '') + ' is not in ' + assignment_name.lower().replace(' ', ''))
+                    elements.pop()
+                    continue
+
+                # GRADE ------
+                if sections[3].text == '\xa0':
+                    assignment_percent = None
+                    assignment_letter = None
+
+                else:
+                    assignment_percent = sections[3].text[:-3]
+                    assignment_letter = sections[3].text[-2:-1]
+
+                if assignment_percent is not None and grade:
+                    if not (float(grade.split('-')[0]) <= float(assignment_percent[:-1]) <= float(grade.split('-')[1])):
+                        elements.pop()
+                        continue
+
+                elements[i]['name'] = assignment_name
                 elements[i]['link'] = f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}"
                 elements[i]['id'] = elements[i]['link'].split('?id=')[1]
                 elements[i]['status'] = str.lower(sections[1].contents[0].get('title'))
@@ -359,13 +381,20 @@ class Client:
                 else:
                     elements[i]['grade']['points'] = int(sections[2].text.split('.')[0])
 
-                if sections[3].text == '\xa0':
-                    elements[i]['grade']['percent'] = None
-                    elements[i]['grade']['letter'] = None
+                elements[i]['grade']['percent'] = assignment_percent
+                elements[i]['grade']['letter'] = assignment_letter
 
-                else:
-                    elements[i]['grade']['percent'] = sections[3].text[:-3]
-                    elements[i]['grade']['letter'] = sections[3].text[-2:-1]
+                # if sections[3].text == '\xa0':
+                #     assignment_percent = None
+                #     assignment_letter = None
+                #     elements[i]['grade']['percent'] = None
+                #     elements[i]['grade']['letter'] = None
+                #
+                # else:
+                #     assignment_percent = sections[3].text[:-3]
+                #     assignment_letter = sections[3].text[-2:-1]
+                #     elements[i]['grade']['percent'] = sections[3].text[:-3]
+                #     elements[i]['grade']['letter'] = sections[3].text[-2:-1]
 
                 element = sections[10].text
                 if element == "\xa0":
@@ -457,25 +486,25 @@ class Client:
         self.log('CLIENT', 'data returned successfully.', 'green')
         return elements
 
-    def get_all_assignments(self, get_attachments: bool = False):
+    def get_all_assignments(self, get_attachments: bool = False, name='', grade=''):
 
         self.__verify()
-        return self.__get_assignments('all', get_attachments=get_attachments)
+        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade)
 
-    def get_upcoming_assignments(self, get_attachments: bool = False):
-
-        self.__verify()
-        return self.__get_assignments('upcoming', get_attachments=get_attachments)
-
-    def get_recent_assignments(self, get_attachments: bool = False):
+    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade=''):
 
         self.__verify()
-        return self.__get_assignments('recent', get_attachments=get_attachments)
+        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade)
 
-    def get_problematic_assignments(self, get_attachments: bool = False):
+    def get_recent_assignments(self, get_attachments: bool = False, name='', grade=''):
 
         self.__verify()
-        return self.__get_assignments('problematic', get_attachments=get_attachments)
+        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade)
+
+    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade=''):
+
+        self.__verify()
+        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade)
 
     def get_account_info(self):
 
@@ -524,7 +553,13 @@ class Client:
             data[i]['id'] = row.find('a').get('href').split('id=')[1]
             data[i]['s1'] = row.find_all('div')[1].text
             data[i]['s2'] = row.find_all('div')[4].text
-            data[i]['total'] = row.find_all('div')[7].text
+
+            try:  # if no class grade
+                data[i]['total'] = row.find_all('div')[7].text
+            except IndexError:
+                data[i]['s1'] = None
+                data[i]['s2'] = None
+                data[i]['total'] = None
 
             i += 1
 
@@ -697,12 +732,12 @@ class Client:
 
             tasks = []
             for url in links:
-                tasks.append(asyncio.ensure_future(stuff(url)))
+                tasks.append(ensure_future(stuff(url)))
 
-            responses = await asyncio.gather(*tasks)
+            responses = await gather(*tasks)
             return responses
 
-        loop = asyncio.get_event_loop()
+        loop = get_event_loop()
 
         results = loop.run_until_complete(main())
         loop.close()
@@ -729,13 +764,15 @@ class Client:
 
         pageid = self.__get_pageid("https://igradeplus.com/student/communications/calendar")
 
-        html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-            'callback': '',
-            'pageid': pageid,
-            'sourceid': '12',
-            'targetid': '12',
-            'event': '30'
-        }).text
+        html = self.__send_ajax(pageid, '12', return_=True)
+
+        # html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+        #     'callback': '',
+        #     'pageid': pageid,
+        #     'sourceid': '12',
+        #     'targetid': '12',
+        #     'event': '30'
+        # }).text
 
         elements = []
         soup = BeautifulSoup(html, 'lxml')
@@ -779,13 +816,15 @@ class Client:
 
         pageid = self.__get_pageid("https://igradeplus.com/student/communications/calendar")
 
-        html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-            'callback': '',
-            'pageid': pageid,
-            'sourceid': '12',
-            'targetid': '12',
-            'event': '30'
-        }).text
+        html = self.__send_ajax(pageid, '12', return_=True)
+
+        # html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+        #     'callback': '',
+        #     'pageid': pageid,
+        #     'sourceid': '12',
+        #     'targetid': '12',
+        #     'event': '30'
+        # }).text
 
         elements = []
         soup = BeautifulSoup(html, 'lxml')
@@ -916,7 +955,7 @@ class Client:
         data = self.get_attachments(assignment_id)['attachments']
 
         try:
-            os.mkdir(folder_location)
+            mkdir(folder_location)
         except FileExistsError:
             pass
 
@@ -957,12 +996,12 @@ class Client:
             data[i]['images'] = {}
 
             try:
-                data[i]['images']['background'] = re.search(r"\('(.*?)'\)", string).group(1)
+                data[i]['images']['background'] = search(r"\('(.*?)'\)", string).group(1)
             except AttributeError:
                 data[i]['images']['background'] = None
 
             try:
-                data[i]['images']['main'] = re.search(r"\('(.*?)'\)", element.find('div', style='position: absolute; left: 25.0px; top: 50.0px; ').find().get('style')).group(1)
+                data[i]['images']['main'] = search(r"\('(.*?)'\)", element.find('div', style='position: absolute; left: 25.0px; top: 50.0px; ').find().get('style')).group(1)
             except AttributeError:
                 data[i]['images']['main'] = f"{{Text: {element.find('div', style='position: absolute; left: 25.0px; top: 50.0px; ').find().text}}}"
 
@@ -979,7 +1018,7 @@ class Client:
         self.log('CLIENT', 'closing client...')
         self.session.close()
 
-        asyncio.run(await_close())
+        run(await_close())
         self.log('CLIENT', 'client closed.', 'green')
 
     def get_attendance(self):
@@ -1007,13 +1046,15 @@ class Client:
 
         pageid = self.__get_pageid('https://igradeplus.com/student/attendance')
 
-        html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-            'callback': '',
-            'pageid': pageid,
-            'sourceid': '166',
-            'targetid': '166',
-            'event': '30'
-        }).text
+        html = self.__send_ajax(pageid, '166', return_=True)
+
+        # html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
+        #     'callback': '',
+        #     'pageid': pageid,
+        #     'sourceid': '166',
+        #     'targetid': '166',
+        #     'event': '30'
+        # }).text
 
         soup = BeautifulSoup(html, 'lxml')
         data = {}
@@ -1063,9 +1104,9 @@ class Client:
 
             tasks = []
             for i in range(len(links)):
-                tasks.append(asyncio.ensure_future(get_performance(links[i], teachers[i], ids[i])))
+                tasks.append(ensure_future(get_performance(links[i], teachers[i], ids[i])))
 
-            responses = await asyncio.gather(*tasks)
+            responses = await gather(*tasks)
             return responses
 
         links = []
@@ -1077,7 +1118,7 @@ class Client:
             teachers.append(id['class'])
             ids.append(id['id'])
 
-        loop = asyncio.get_event_loop()
+        loop = get_event_loop()
 
         results = loop.run_until_complete(main())
         loop.close()

@@ -1,6 +1,6 @@
 ## Readme currently in progress
 
-- [ ] uploading documents - ***ON HOLD***
+- [ ] uploading documents - ***ON HOLD, 50% done. HELP WANTED***
 - [x] class analytics
 - [x] teacher info
 - [x] attendance status
@@ -9,9 +9,22 @@
 - [x] event/announcement content collection method
 - [ ] small optimizations for imports and small functions
 
+### Filters:
+- [x] Name
+- [x] grade
+- [ ] due, assigned
+- [ ] type
+- [ ] category
+- [ ] class
+
 # Changelog:
 
+### 2023.5.31
+* ***2.4.3*** - Import optimizations; error handling
+
 ### 2023.5.30
+* ***2.4.2*** - Added name and grade filter
+
 * ***2.4.1*** - Debug option for logging; class performance
 
 * ***2.4*** - Async rework for getting attachments and assignment pages
