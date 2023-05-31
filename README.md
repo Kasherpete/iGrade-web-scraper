@@ -4,7 +4,7 @@
 - [x] class analytics
 - [x] teacher info
 - [x] attendance status
-- [ ] assignment filters
+- [x] assignment filters
 - [x] multithreading or async implementation for some data collection
 - [x] event/announcement content collection method
 - [x] small optimizations for imports and small functions
@@ -12,7 +12,7 @@
 ### Filters:
 - [x] Name
 - [x] grade
-- [ ] due, assigned
+- [x] due, assigned
 - [x] type
 - [x] category
 - [x] class
@@ -20,6 +20,8 @@
 # Changelog:
 
 ### 2023.5.31
+* ***2.4.5*** - Due and assigned filter added, assignment filter finished
+
 * ***2.4.4*** - Warning fixes; type, category, and grade filters
 
 * ***2.4.3*** - Import optimizations; error handling

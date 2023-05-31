@@ -2,7 +2,6 @@ from asyncio import gather, ensure_future, get_event_loop, run
 from datetime import datetime, timedelta
 from re import search
 from time import localtime
-from json import dumps
 from aiohttp import ClientSession
 from requests import session
 from bs4 import BeautifulSoup
@@ -271,12 +270,14 @@ class Client:
                 'event': '30'
             }).text
 
-    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: str = '', assignment_type: str = '', category: str = '', class_: str = ''):
+    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: str = '', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         # name filter will get all assignments that include the string given. it is not case-sensitive and removes spaces and underscores.
         # grade filter is two numbers from 0+. example: '50-100' gets all assignments from 50 to 100. assignments with null grades are always filtered if this filter is set.
         # assignments_type filter. values can be 'extra credit', 'no value', or 'standard'. this is cleaned like the name filter. there are also more types than these 3.
         # category filter gets assignments with a certain category. this is cleaned and can match either the abbreviation or the full category name in order for the assignment to stay. categories dependent on class.
+        # due filter gets assignments that match in between two dates. example: ('2023.4.1', '2023.5.1'). items in the tuple can also be 'now' for the current date.
+        # assigned filter is the same as above, with assigned dates
 
         # better algorithm - covers all edge cases
         def is_past(date: str, due_in: int):
@@ -304,6 +305,16 @@ class Client:
                 return True
 
             return False
+
+        def is_date_between(start_date: str, end_date: str, check_date: str):
+
+            if start_date.lower() == 'now':
+                start_date = datetime.now().strftime('%Y.%m.%d')
+
+            if end_date.lower() == 'now':
+                end_date = datetime.now().strftime('%Y.%m.%d')
+
+            return datetime.strptime(start_date, '%Y.%m.%d') <= datetime.strptime(check_date, '%Y.%m.%d') <= datetime.strptime(end_date, '%Y.%m.%d')
 
         def is_between(date: str, days: int):
             return is_past(date, days + 1) and (not is_past(date, 0))
@@ -385,6 +396,38 @@ class Client:
                     elements.pop()
                     continue
 
+                # DUE -------
+                try:
+                    assignment_due = sections[6].text
+                except IndexError:
+                    assignment_due = None
+
+                if due:
+                    if assignment_due is None or assignment_due == '':
+                        elements.pop()
+                        continue
+
+                    if not is_date_between(due[0], due[1], assignment_due):
+
+                        elements.pop()
+                        continue
+
+                # ASSIGNED ---------
+                try:
+                    assignment_assigned = sections[5].text
+                except IndexError:
+                    assignment_assigned = None
+
+                if assigned:
+                    if assignment_assigned is None or assignment_assigned == '':
+                        elements.pop()
+                        continue
+
+                    if not is_date_between(assigned[0], assigned[1], assignment_assigned):
+
+                        elements.pop()
+                        continue
+
                 elements[i]['name'] = assignment_name
                 elements[i]['link'] = f"https://igradeplus.com/student/{sections[0].contents[0].get('href')}"
                 elements[i]['id'] = elements[i]['link'].split('?id=')[1]
@@ -392,15 +435,8 @@ class Client:
 
                 elements[i]['semester'] = sections[4].text
 
-                try:
-                    elements[i]['assigned'] = sections[5].text
-                except IndexError:
-                    elements[i]['assigned'] = 'none'
-
-                try:
-                    elements[i]['due'] = sections[6].text
-                except IndexError:
-                    elements[i]['due'] = 'none'
+                elements[i]['assigned'] = assignment_assigned
+                elements[i]['due'] = assignment_due
 
                 elements[i]['type'] = this_assignment_type
                 elements[i]['class'] = assignment_class
@@ -530,25 +566,25 @@ class Client:
 
         return elements
 
-    def get_all_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
+    def get_all_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
-        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
+        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
 
-    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
-
-        self.__verify()
-        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
-
-    def get_recent_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
+    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
-        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
+        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
 
-    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = ''):
+    def get_recent_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
-        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_)
+        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
+
+    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+
+        self.__verify()
+        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
 
     def get_account_info(self):
 
