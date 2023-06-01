@@ -56,8 +56,11 @@ It’s that easy! Once you have this code, you can now use all other
 functions and methods included within the Client object. If you ever
 input the wrong credentials, it will through an error so you don’t have
 to encounter errors later in the program. And no, you cannot brute force
-credentials using this method ;) ^^^warning: if you do not log in before
-using the module, an error will be thrown.
+credentials using this method ;)
+
+.. warning::
+   If you do not log in before
+   using the module, an error will be thrown.
 
 Login in with Cookies
 ~~~~~~~~~~~~~~~~~~~~~
