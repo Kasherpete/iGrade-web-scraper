@@ -1251,9 +1251,3 @@ class Client:
         loop.close()
 
         return results
-
-
-client = Client(debug=True)
-client.login_with_credentials('peterkea000', 'Pet18591')
-print(dumps(client.get_all_assignments(assigned=('2023.4.10', 'now'))))
-client.close()
