@@ -21,3 +21,9 @@ Contents
    overview
    installation
    setup-login
+   getting_assignments
+   getting_grades
+   getting_announcements
+   getting_events
+   ids
+   attachments

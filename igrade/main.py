@@ -21,50 +21,6 @@ except FileNotFoundError:
 simplefilter("ignore")
 
 
-#     def upload_file(self, assignment_id):
-#
-#         pageid = 1#self.__get_pageid(f'https://igradeplus.com/student/assignment?id={assignment_id}')
-#
-#         # self.__send_ajax_verify(pageid)
-#
-#         # print(self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-#         #     'files[]': 'Untitled3.txt',
-#         #     'pageid': pageid,
-#         #     'sourceid': '145',
-#         #     'targetid': '145',
-#         #     'event': '27'
-#         # }).text)
-#
-#         dfile = open("Untitled6.txt", "rb").read()
-#
-#
-#         print(self.session.post('https://igradeplus.com/OorianFileUploadHandler', headers = {
-#             'Content-Type': '''multipart/form-data; boundary=----WebKitFormBoundaryZOX6UAUf3ZoweBou''',
-#             'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'
-#         }, data=(
-#             f'''------WebKitFormBoundaryZOX6UAUf3ZoweBou
-# Content-Disposition: form-data; name="pageid"
-#
-# {pageid}
-# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
-# Content-Disposition: form-data; name="eventid"
-#
-# 26
-# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
-# Content-Disposition: form-data; name="sourceid"
-#
-# 145
-# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
-# Content-Disposition: form-data; name="targetid"
-#
-# 145
-# ------WebKitFormBoundaryZOX6UAUf3ZoweBou
-# Content-Disposition: form-data; name="upload_file"; filename="Untitled5.txt"
-# Content-Type: text/plain
-#
-# {dfile}
-# ------WebKitFormBoundaryZOX6UAUf3ZoweBou--'''
-#         )).text)
 
 
 class Client:
@@ -725,6 +681,8 @@ class Client:
             data.append({})
 
             data[i]['class'] = row.find('a').text
+            data[i]['link'] = f"https://igradeplus.com{row.find('a').get('href')}"
+            data[i]['id'] = row.find('a').get('href').split('id=')[1]
             data[i]['teacher'] = row.find_all('td')[1].text
             data[i]['years'] = row.find_all('td')[2].text
             data[i]['s1'] = row.find_all('div')[1].text
@@ -868,7 +826,7 @@ class Client:
 
         results = loop.run_until_complete(main())
         loop.close()
-        
+
         response = results
 
         return response
@@ -1219,9 +1177,9 @@ class Client:
                 data = row.find_all('td')
 
                 elements[i]['type'] = data[0].text
-                elements[i]['s1'] = data[1].text
-                elements[i]['s2'] = data[2].text
-                elements[i]['total'] = data[3].text
+                elements[i]['s1'] = data[1].text[:-2]
+                elements[i]['s2'] = data[2].text[:-2]
+                elements[i]['total'] = data[3].text[:-2]
 
                 i += 1
 
