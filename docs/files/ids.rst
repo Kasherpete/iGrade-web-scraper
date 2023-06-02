@@ -13,8 +13,8 @@ assignment “ID”.
 IDs are assigned to but not limited to:
 
 -  :doc:`Assignments <getting_assignments>`
--  Attachments
--  Teachers
+-  :doc:`Attachments <attachments>`
+-  :doc:`Teachers <teacher_info>`
 -  Classes
 -  :doc:`Assignments <getting_events>`
 

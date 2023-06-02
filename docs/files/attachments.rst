@@ -1,14 +1,14 @@
 Attachment Handling
 ===================
 
-.. note::
+.. seealso::
    You will have need to read :doc:`What are IDs? <ids>` in order to fully
    handling and downloading attachments.
 
 Getting Attachments
 ~~~~~~~~~~~~~~~~~~~
 
-The ``get_attachments`` function requires you to have the assignment ID
+The ``get_attachments()`` function requires you to have the assignment ID
 of the assignment you want to get attachment details from. You can get
 it manually by **looking at the URL** when you are at the attachment of
 your choice, or you can obtain it from :doc:`Assignments <getting_assignments>`.
@@ -24,10 +24,10 @@ Usage:
 
 Using this function will return the following:
 
-.. figure:: images/attachments-1.png
+.. figure:: ../images/attachments-1.png
    :alt: image
 
-   json.stack.hu
+   https://json.stack.hu
 
 Downloading Attachments
 ~~~~~~~~~~~~~~~~~~~~~~~

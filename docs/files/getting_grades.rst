@@ -12,7 +12,7 @@ Use this code to get current grades:
 
 This will return a ``list`` containing ``dicts``, like what is shown below:
 
-.. figure:: images/getting_grades-1.png
+.. figure:: ../images/getting_grades-1.png
    :alt: image
 
    https://json.stack.hu
@@ -49,3 +49,5 @@ Example Code
    for current_class in classes:
    	print(f'Class: {current_class["class"]}'). # name of class
    	print(f'You have a final grade of {current_class["total"]}.\n')
+
+   client.close()

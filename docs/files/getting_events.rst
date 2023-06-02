@@ -25,7 +25,7 @@ The response data will include:
 
 .. note::
    This gets the text and HTML, but it does not get the link or
-   the ID of the event.
+   the :doc:`ID <ids>` of the event.
 
 All Events
 ~~~~~~~~~~
@@ -54,7 +54,7 @@ Getting Event Content
 
 This method is mainly used in parallel with ``get_all_announcements()``.
 The reason is, while getting the upcoming events get the content,
-getting all events does not. Using the event ID, however, enables you to
+getting all events does not. Using the :doc:`event ID <ids>`, however, enables you to
 obtain the event content, or the text and HTML. Usage:
 
 .. code:: python

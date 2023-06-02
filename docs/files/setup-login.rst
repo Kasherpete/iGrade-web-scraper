@@ -30,12 +30,12 @@ Login
 -----
 
 There are two ways that you can use to log in to your account. The first
-way is to use your credentials and the wrapper will automatically log in
+way is to use your credentials, and the wrapper will automatically log in
 to your account for you. The second way is by using your `session
 cookies <https://www.cookieyes.com/blog/session-cookies/>`__. We
 personally recommend using your login credentials because it is easier,
 but if you do want to save that .3 seconds that it takes to log in, you
-may use your login credentials.
+may use your session ID tokens.
 
 Login in with Credentials
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,6 +51,12 @@ To log in with your iGrade credentials, use this code:
 
    client = Client()
    client.login_with_credentials(username, password)
+   client.close()  # this needs to be included, see below
+
+.. tip::
+   You have to close the client in order to properly shut down the
+   program. Failing to do so will cause a lot of warnings to show up
+   in the console. See :doc:`here <client_close>` for more info.
 
 It’s that easy! Once you have this code, you can now use all other
 functions and methods included within the Client object. If you ever
@@ -93,5 +99,7 @@ This will check for correct credentials/tokens just like above.
 
    client = Client()
    client.login_with_token(session_id, server_id)
+
+   client.close()
 
 You should now be able to get information from your iGrade account!

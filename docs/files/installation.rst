@@ -31,8 +31,13 @@ If you would like to install everything manually or you
 don’t want to deal with issues with git or Github, follow these
 steps:
 
-1. Download the zip file, which can be found
-   `here <https://github.com/Kasherpete/Igrade-web-scraper/archive/refs/heads/main.zip>`__.
+1. Download the zip file `here <https://github.com/Kasherpete/Igrade-web-scraper/archive/HEAD.zip>`_
+
+   .. raw:: html
+
+      <script async defer src="https://buttons.github.io/buttons.js"></script>
+      <a class="github-button" href="https://github.com/Kasherpete/Igrade-web-scraper/archive/HEAD.zip" data-icon="octicon-download" data-size="large" aria-label="Download Kasherpete/Igrade-web-scraper on GitHub">Download</a>
+      <p></p>
 
 2. Extract the contents of the file. You can do this on a Mac by double
    clicking on the file, and you can do it on windows by right clicking

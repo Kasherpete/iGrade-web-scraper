@@ -9,7 +9,7 @@
 project = 'iGrade-web-scraper'
 copyright = '2023, Keagan Peterson'
 author = 'Keagan Peterson'
-release = '2.4.5'
+release = '2.4.7'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

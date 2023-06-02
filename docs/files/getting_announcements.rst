@@ -14,13 +14,13 @@ straightforward, with the following line of code:
 .. note::
    This method can take one parameter, ``get_link``. You can set
    it to ``True`` or ``False``, with the first one being slightly slower.
-   This will get the link and the ID of the announcement.
+   This will get the link and the :doc:`ID <ids>` of the announcement.
 
 This is the response data returned:
 
 -  Title
 -  Link (if applicable)
--  ID (if applicable)
+-  :doc:`ID <ids>` (if applicable)
 -  Date
 -  Author
 -  Content
@@ -47,8 +47,8 @@ choose to get the plain text by setting html=False, like so:
 
 The
 reason why this feature is no longer used is because you can only
-obtain announcement IDs **manually through iGrade yourself** or
+obtain :doc:`announcement IDs <ids>` **manually through iGrade yourself** or
 through setting get_link to true while getting announcements. On top
 of this, whether you choose to get the link or not, you will always
 be able to get both the text and HTML of the file through the
-response data returned.
+response data returned from ``client.get_announcements()``.

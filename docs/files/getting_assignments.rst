@@ -18,6 +18,12 @@ Upcoming Assignments
 Upcoming assignments are the assignments that show up in the "upcoming" tab
 in your iGradePlus account under assignments. This is usually 10-20 assignments long.
 
+.. seealso::
+
+   You are also now able to filter through assignments to only get assignments
+   relevant to what you need. See :doc:`filters` for more information and how
+   to use them.
+
 .. code:: python
 
    client.get_upcoming_assignments()
@@ -27,7 +33,7 @@ below:
 
 -  Name
 -  Link
--  ID
+-  :doc:`ID <ids>`
 -  Status
 -  Semester
 -  Assigned date
@@ -50,7 +56,7 @@ return the following:
 While this does get much more info, it does take an extra 2-3 seconds.
 You can see the visualization below:
 
-.. figure:: images/getting_assignments-1.png
+.. figure:: ../images/getting_assignments-1.png
    :alt: image
 
    https://jsonviewer.stack.hu/
@@ -71,6 +77,8 @@ If you want to see this visualization yourself, use this code:
    data = client.get_upcoming_assignments(get_attachments=True)
    print(json.dumps(data))  # copy and paste output into https://jsonviewer.stack.hu
 
+   client.close()
+
 .. note::
    The "get assignment" methods return a ``list`` containing ``dicts``, or dictionaries.
    Use json.dumps() to convert the return data into a JSON string. There is little to
@@ -80,7 +88,7 @@ If you want to see this visualization yourself, use this code:
 Other Assignments Types
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-   **Upcoming Assignments**
+   ``get_upcoming_assignments()``
 
    This is the main assignment type. This is usually a list of 10-20
    assignments, depending on the type of schooling you have. It reaches
@@ -88,24 +96,34 @@ Other Assignments Types
 
 ..
 
-   **All assignments**
+   ``get_all_assignments()``
 
    This gets all assignments, past and future, so while the list varies,
    it is always very long. This is the second most used assignments
    type.
 
-   **Recent Assignments**
+   ``get_recent_assignments()``
 
    This gets assignments that have been due in the past week or two.
    This is usually just shorter than upcoming assignments.
 
 ..
 
-   **Problematic Assignments**
+   ``get_problematic_assignments()``
 
    This type of assignment are things that have a very low grade on, or
    are way past due. Hopefully, this is a low number. If not, you should
    probably spend more time on that than reading this documentation ;)
+
+Filters
+~~~~~~~
+
+There is now an option to use filters with the 4 functions for getting
+assignments. You can filter by name, grade, date and much more. For
+more information, see :doc:`this page <filters>`.
+
+
+
 
 Example Code
 ~~~~~~~~~~~~
@@ -128,3 +146,5 @@ module.
    for assignment in assignments:
       print(f'{assignment["name"]} is due on {assignment["due"]}.')
       print(f'This assignments is worth {assignment["grade"]["value"]} points.\n')
+
+   client.close()

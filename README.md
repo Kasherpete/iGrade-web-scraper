@@ -8,6 +8,15 @@
 - [x] multithreading or async implementation for some data collection
 - [x] event/announcement content collection method
 - [x] small optimizations for imports and small functions
+<p></p>
+
+- [ ] fix binary byte inclusion in performance info
+- [ ] make separate exceptions and utils file
+- [ ] add EC, especially filters
+- [ ] "now+{amount}" for date filter
+- [ ] regex search filter
+- [ ] announcement and event filter addition
+- [ ] get null assignments for filters
 
 ### Filters:
 - [x] Name
@@ -18,6 +27,12 @@
 - [x] class
 
 # Changelog:
+
+# 2023.6.2
+* ***2.4.7*** - Updated ReadTheDocs page
+
+### 2023.6.1
+* ***2.4.6*** - Made response data more uniform; added ReadTheDocs page
 
 ### 2023.5.31
 * ***2.4.5*** - Due and assigned filter added, assignment filter finished
