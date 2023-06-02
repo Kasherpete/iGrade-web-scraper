@@ -4,14 +4,16 @@ Changelog
 2023.6.2
 ~~~~~~~~
 
+-  **2.5.0** - Updated README
+
+-  **2.4.8** - Finished ReadTheDocs page; added requirements.txt
+
 -  **2.4.7** - Updated ReadTheDocs page
 
 .. _section-1:
 
 2023.6.1
 ~~~~~~~~
-
--  **2.4.8** - Finished ReadTheDocs page; added requirements.txt
 
 -  **2.4.6** - Made response data more uniform; added ReadTheDocs page
 
