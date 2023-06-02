@@ -56,7 +56,7 @@ return the following:
 While this does get much more info, it does take an extra 2-3 seconds.
 You can see the visualization below:
 
-.. figure:: ../images/getting_assignments-1.png
+.. figure:: images/getting_assignments-1.png
    :alt: image
 
    https://jsonviewer.stack.hu/

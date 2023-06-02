@@ -34,7 +34,7 @@ section. The visualization list is here:
 
 Here is an image, showing the parsed JSON:
 
-.. figure:: ../images/performance-1.png
+.. figure:: images/performance-1.png
    :alt: image
 
    https://json.stack.hu

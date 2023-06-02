@@ -15,7 +15,7 @@ to explain everything you need to know in order to use this rich and feature-fil
    <a class="github-button" href="https://github.com/Kasherpete/Igrade-web-scraper" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star Kasherpete/Igrade-web-scraper on GitHub">Star</a>
    <p></p>
 
-Check out the :doc:`files/overview` section for a quick explanation of our project, and :doc:`files/installation` to see exactly
+Check out the :doc:`overview` section for a quick explanation of our project, and :doc:`installation` to see exactly
 what needs to be done in order to install properly.
 
 
@@ -34,36 +34,44 @@ what needs to be done in order to install properly.
    :maxdepth: 1
    :caption: Setup and Install
 
-   files/overview
-   files/installation
-   files/setup-login
-   files/client_close
+   overview
+   installation
+   setup-login
+   client_close
 
 .. toctree::
    :maxdepth: 1
    :caption: Usage
 
-   files/getting_assignments
-   files/getting_grades
-   files/getting_announcements
-   files/getting_events
-   files/ids
-   files/attachments
+   getting_assignments
+   getting_grades
+   getting_announcements
+   getting_events
+   ids
+   attachments
 
 .. toctree::
    :maxdepth: 1
    :caption: Filters
 
-   files/filters
+   filters
 
 
 .. toctree::
    :maxdepth: 1
    :caption: Extra Features
 
-   files/account_info
-   files/teacher_info
-   files/attendance
-   files/performance
+   account_info
+   teacher_info
+   attendance
+   performance
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Help Section
+
+   errors
+   todo
+   changelog
 
 

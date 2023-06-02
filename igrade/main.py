@@ -2,7 +2,6 @@ from asyncio import gather, ensure_future, get_event_loop, run
 from datetime import datetime, timedelta
 from re import search
 from time import localtime
-from json import dumps
 from aiohttp import ClientSession
 from requests import session
 from bs4 import BeautifulSoup

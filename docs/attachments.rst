@@ -24,7 +24,7 @@ Usage:
 
 Using this function will return the following:
 
-.. figure:: ../images/attachments-1.png
+.. figure:: images/attachments-1.png
    :alt: image
 
    https://json.stack.hu

@@ -18,7 +18,7 @@ This will get the attendance for each class and each semester. Since
 different teachers have different methods of counting attendance, the
 response data may seem confusing. You can see the data here:
 
-.. figure:: ../images/attendance-1.png
+.. figure:: images/attendance-1.png
    :alt: image
 
    https://json.stack.hu

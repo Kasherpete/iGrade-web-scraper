@@ -28,7 +28,9 @@
 
 # Changelog:
 
-# 2023.6.2
+### 2023.6.2
+* ***2.4.8*** - Finished ReadTheDocs page; added requirements.txt
+
 * ***2.4.7*** - Updated ReadTheDocs page
 
 ### 2023.6.1
