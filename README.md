@@ -14,8 +14,13 @@ Some of the features that are included within the module are:
 
 
 # Installation
-This project is currently not enrolled in [Pypi](https;//pypi.org), but it will be soon. That way, all you need to do
-is ``pip install igrade``. For now, we will just have to install it via ``git clone``.
+### Pypi
+If you want to use the simple way of installing this package, type this into the command line of the project directory:
+```
+pip install igrade
+```
+### git clone
+Use this method to manually install the package.
 
 1. cd to the directory you want the module to be located in.
 2. Type ``git clone Kasherpete/Igrade-web-scraper`` into the command line (assuming you have git installed)
@@ -53,6 +58,8 @@ client.close()  # close the client
 # Changelog:
 
 ### 2023.6.2
+* ***2.5.1*** - Added package to Pypi
+
 * ***2.5.0*** - Updated README
 
 * ***2.4.8*** - Finished ReadTheDocs page; added requirements.txt

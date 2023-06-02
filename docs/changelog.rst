@@ -4,6 +4,8 @@ Changelog
 2023.6.2
 ~~~~~~~~
 
+-  **2.5.1** - Added project to Pypi
+
 -  **2.5.0** - Updated README
 
 -  **2.4.8** - Finished ReadTheDocs page; added requirements.txt

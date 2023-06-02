@@ -1,9 +1,15 @@
 Installation
 ============
 
-The iGrade-Web-Scraper module is not currently enrolled in
-`Pypi <https://pypi.org/>`__, although it will be in the near future.
-For now we will have to manually install from Github.
+Pypi
+----
+
+To install with pip, all you need to do is simply go to the project
+directory and type this into the command line:
+
+.. code::
+
+   pip install igrade
 
 git clone
 ---------
