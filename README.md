@@ -1,34 +1,60 @@
-## Readme currently in progress
+# Overview
+This module is a project that provides an unofficial wrapper to [**iGradePlus Student Managing Systems**](https://igradeplus.com). Documentation can be found [here](https://igrade-web-scraper.readthedocs.io/en/latest/), **please read it before using!**
 
-- [ ] uploading documents - ***ON HOLD, 50% done. HELP WANTED***
-- [x] class analytics
-- [x] teacher info
-- [x] attendance status
-- [x] assignment filters
-- [x] multithreading or async implementation for some data collection
-- [x] event/announcement content collection method
-- [x] small optimizations for imports and small functions
-<p></p>
+[![Documentation Status](https://readthedocs.org/projects/igrade-web-scraper/badge/?version=latest)](https://igrade-web-scraper.readthedocs.io/en/latest/?badge=latest)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-Yes-green.svg)]()
 
-- [ ] fix binary byte inclusion in performance info
-- [ ] make separate exceptions and utils file
-- [ ] add EC, especially filters
-- [ ] "now+{amount}" for date filter
-- [ ] regex search filter
-- [ ] announcement and event filter addition
-- [ ] get null assignments for filters
+Some of the features that are included within the module are:
 
-### Filters:
-- [x] Name
-- [x] grade
-- [x] due, assigned
-- [x] type
-- [x] category
-- [x] class
+- Getting assignments (multiple categories)
+- Getting grades and class performance
+- Giving you information on calendar events
+- Access to all announcements
+- And much, much more, which can all be viewed [**here**](https://igrade-web-scraper.readthedocs.io/en/latest/)
+
+
+# Installation
+This project is currently not enrolled in [Pypi](https;//pypi.org), but it will be soon. That way, all you need to do
+is ``pip install igrade``. For now, we will just have to install it via ``git clone``.
+
+1. cd to the directory you want the module to be located in.
+2. Type ``git clone Kasherpete/Igrade-web-scraper`` into the command line (assuming you have git installed)
+and press enter.
+3. Make sure everything is in the right folders, and from there you are able to start using the module!
+
+# Quickstart
+The documentation can be found [**here**](https://igrade-web-scraper.readthedocs.io/en/latest/), again, **please read
+it!** For a quick overview of what using this module will look like, here is a sample code:
+
+```python
+from igrade import Client
+
+username = ''
+password = ''
+
+# there is a couple client init options for you to use as well
+client = Client()
+
+# you can use credentials or tokens
+client.login_with_credentials(username, password)
+
+# there are a few filters available, one of which is being used here
+assignments = client.get_upcoming_assignments(name='week')
+print('you have' + str(len(assignments)) + 'due!')
+
+for assignment in assignments:
+    
+    # print assignment name and due date
+    print(assignment['name'] + ' is due on ' + assignment['due'])
+
+client.close()  # close the client
+```
 
 # Changelog:
 
 ### 2023.6.2
+* ***2.5.0*** - Updated README
+
 * ***2.4.8*** - Finished ReadTheDocs page; added requirements.txt
 
 * ***2.4.7*** - Updated ReadTheDocs page
