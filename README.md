@@ -16,12 +16,19 @@ Some of the features that are included within the module are:
 # Installation
 ### Pypi
 If you want to use the simple way of installing this package, type this into the command line of the project directory:
-```
+```shell
 pip install igrade
 ```
 Also note that this will not get the latest version, but the last known *stable* version.
 To get the newest version (which is usually fairly stable), use the ``--upgrade`` flag, so
-the full command will look like ``pip install --upgrade igrade``.
+the full command will look like:
+```shell
+pip install --upgrade igrade
+```
+***IMPORTANT***: If the installation takes a while, it is most likely because
+of the ``lxml`` library. `lxml` has to be compiled when it is installed, since
+it is written is C. This process should only take a minute or two but *may be
+slower on older machines*.
 ### git clone
 Use this method to manually install the package.
 

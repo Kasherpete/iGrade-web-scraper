@@ -36,9 +36,9 @@ Incorrect credentials
 
 This happens when you input some credentials to be signed in but they
 are incorrect. Make sure you are using the right log in function whilst
-signing in.
+signing in. Example: ``igrade.exceptions.LoginError: Incorrect credentials.``
 
-.. note::
+.. tip::
 
    If you are using tokens to sign in, they are
    probably expired. That is another reason I personally recommend using
@@ -50,8 +50,19 @@ Client is not logged in
 This happens when you try to use a function that requires you to be
 logged in in order to use. Use the code
 ``client.login_with_credentials('username', 'password')`` to keep this
-error from happening. If the issue persists, submit an issue
+error from happening. Example:
+``igrade.exceptions.LoginError: Client is not logged in.``
+If the issue persists, submit an issue
 `here <https://github.com/Kasherpete/Igrade-web-scraper/issues>`_.
+
+Filter Error
+~~~~~~~~~~~~
+
+This error may happen when you try to use a filter argument that is
+not compatible, or is not formatted correctly. You may have a date
+that is not formatted in the YYYY.MM.DD format, or something similar -
+that is the most common FilterError situation. An example would be
+``igrade.exceptions.FilterError: time data '2022.13.27' does not match format '%Y.%m.%d'``.
 
 Other Exceptions
 ----------------
