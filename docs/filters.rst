@@ -16,11 +16,11 @@ Overview
 
 Filters include the following abilities, Filtering by:
 
--  Name
+-  Name (:doc:`regex <regex>` included)
 -  Grade
 -  Type
--  Category
--  Class
+-  Category (:doc:`regex <regex>` included)
+-  Class (:doc:`regex <regex>` included)
 -  Due date
 -  Assigned date
 
@@ -48,24 +48,41 @@ included.
 
    Capitalization, spaces, and underscores are ignored, if you want
    to filter for exact matches, you may implement that within your own code
-   by filtering results from the response.
+   by filtering results from the response. Also, :doc:`regex <regex>` is
+   supported for searching by name.
 
 Grade
 -----
 
+.. _grade-filter:
+
 Filtering by grade uses the ``grade`` parameter, and check for any
-grades within a certain range. An example is ``grade='75-100'``, which
+grades within a certain range. An example is ``grade=('75', '100')``, which
 will return all assignments within the 75-100% range. You can check for
-grades above 100, but you cannot check for negative grades (if that’s
-even possible)
+grades above 100 and below 0 (if that's even possible.)
 
-.. note::
+.. warning::
 
-   We are currently planning on changing the ‘75-100’ format to
-   (70, 100) tuple format. This helps keep it similar with other filters
-   and reduces chances of non-integer formats. This will also in the future
-   allow you to check for grades that may be null, or ungraded by saying
-   (70, 100, True) or something similar.
+   Assignments with null grades are taken out when you are using the filter.
+   see the :ref:`null grades section <null-grades>` (just below) for more
+   info, or the :ref:`null dates <null-dates>` section which explains this
+   as well.
+
+Null Grades
+~~~~~~~~~~~
+
+.. _null-grades:
+
+Sometimes there will be assignments that have not been graded yet, and have
+a null grade. The filter will automatically filter all these assignments out
+**only when you are using that specific filter**. When you don't use that
+specific filter, these assignment are always included.
+However, you can choose to keep these assignments with null grades inside of
+the response. To do this, you have to set a third parameter. For example:
+``('50', '100', True)`` **WILL** get assignments with null grades. Setting
+it to ``False`` will not include the assignments without a grade yet. The
+default value is ``False``.
+
 
 Type and Category
 -----------------
@@ -144,13 +161,15 @@ example:
    client.get_all_assignments(assigned=('2022.6.21', '2023.7.31'))
 
 As you can see, it uses the YYYY.MM.DD format. If you want to use the
-current date, use ‘now’ as an input, like ``('2023.2.1', 'now')``.
+current date, use ‘now’ as an input, like ``('2023.2.1', 'now')``. You
+can also use ``now+days`` or ``now-days`` as a parameter, like so:
+``now+3`` to reference 3 days from now.
 
 .. tip::
 
-   Soon you will be able to use ``now+{days}`` to filter
-   assignments using a date in the future. **This includes the assigned and
-   due date filter**.
+   Like the :ref:`grade filter <grade-filter>`, the due and assigned
+   date filters do not get assignments with a null due or assigned date
+   when you use the filter. See :ref:`below <null-dates>` for more info.
 
 Due
 ~~~
@@ -170,3 +189,22 @@ feature to get assignments that are posted but not yet due.
    We will also be adding a feature to get assignments that do not
    have a specific date assigned, or a null date, just like the grade
    filter.
+
+Null Dates
+~~~~~~~~~~
+
+.. _null-dates:
+
+Sometimes you will have assignments that do not have a specific due or
+assigned date. When you do not use the filter, these null date assignments
+are included in the response. However, when you do use a filter, these
+"null" assignments are not included. You can however change this by adding
+a parameter to the tuple. Here is an example with the ``due`` filter, but
+remember this works for the due **and** assigned filter.
+
+.. code:: python
+
+   client.get_all_assignments(due=('2023.1.1', '2023.3.1', True))
+
+This code **WILL** get assignments with null due dates. The default is ``False``,
+but only when you are using the filter.

@@ -55,6 +55,7 @@ what needs to be done in order to install properly.
    :caption: Filters
 
    filters
+   regex
 
 
 .. toctree::

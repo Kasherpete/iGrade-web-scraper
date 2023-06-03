@@ -19,6 +19,9 @@ If you want to use the simple way of installing this package, type this into the
 ```
 pip install igrade
 ```
+Also note that this will not get the latest version, but the last known *stable* version.
+To get the newest version (which is usually fairly stable), use the ``--upgrade`` flag, so
+the full command will look like ``pip install --upgrade igrade``.
 ### git clone
 Use this method to manually install the package.
 
@@ -56,6 +59,10 @@ client.close()  # close the client
 ```
 
 # Changelog:
+
+### 2023.6.3
+* ***2.5.2*** - Regex search for filters; exceptions rework; fixed binary bytes showing up in
+get_class_performance(); now+{days} date filter addition; grade filter update; added license
 
 ### 2023.6.2
 * ***2.5.1*** - Added package to Pypi

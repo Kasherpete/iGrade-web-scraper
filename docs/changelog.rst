@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2023.6.3
+~~~~~~~~
+
+- **2.5.2** - Regex search for filters; exceptions rework; fixed binary bytes showing up in
+  get_class_performance(); now+{days} date filter addition; grade filter update; added license
+
 2023.6.2
 ~~~~~~~~
 

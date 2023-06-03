@@ -1,1 +1,1 @@
-from main import Client
+from igrade.API import Client

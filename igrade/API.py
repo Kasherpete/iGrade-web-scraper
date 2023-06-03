@@ -1,7 +1,6 @@
-from asyncio import gather, ensure_future, get_event_loop, run
-from datetime import datetime, timedelta
 from re import search
-from time import localtime
+from asyncio import gather, ensure_future, get_event_loop, run
+from re import search
 from aiohttp import ClientSession
 from requests import session
 from bs4 import BeautifulSoup
@@ -10,6 +9,8 @@ from os import mkdir
 from warnings import simplefilter
 from shutil import rmtree
 from colorama import Fore, Style
+from igrade import exceptions
+from igrade import utils
 
 
 try:
@@ -27,11 +28,11 @@ class Client:
     def __init__(self, debug=False):
 
         if 'lxml' not in modules:
-            raise Exception("'lxml' has not been imported. Type 'pip install lxml' to fix this issue.")
+            raise ImportError("'lxml' has not been imported. Type 'pip install lxml' to fix this issue.")
         if 'bs4' not in modules:
-            raise Exception("'bs4' has not been imported. Type 'pip install bs4' to fix this issue.")
+            raise ImportError("'bs4' has not been imported. Type 'pip install bs4' to fix this issue.")
         if 'requests' not in modules:
-            raise Exception("'requests' has not been imported. Type 'pip install requests' to fix this issue.")
+            raise ImportError("'requests' has not been imported. Type 'pip install requests' to fix this issue.")
 
         self.serverid: str = ''
         self.sessionid: str = ''
@@ -45,9 +46,9 @@ class Client:
         # self.aiosession = aiohttp.ClientSession()
         self.is_logging = debug
 
-        self.log('CLIENT', 'client has started')
+        self.__log('CLIENT', 'client has started')
 
-    def log(self, message, content, color: str = 'none'):
+    def __log(self, message, content, color: str = 'none'):
 
         if self.is_logging:
             if color.lower() == 'red':
@@ -65,7 +66,7 @@ class Client:
 
     def login_with_credentials(self, username: str, password: str):
 
-        self.log('LOGIN', 'logging in...')
+        self.__log('LOGIN', 'logging in...')
         pageid = self.__get_pageid("https://igradeplus.com/login/student")
 
         # pageid = str(BeautifulSoup(self.session.get("https://igradeplus.com/login/student").text, 'lxml').find_all("head")[0].get('id'))
@@ -77,10 +78,10 @@ class Client:
         if self.__send_ajax_login2(username, password, pageid, '53'):
 
             self.loggedin = True
-            self.log('LOGIN', 'logged in', 'green')
+            self.__log('LOGIN', 'logged in', 'green')
 
         else:
-            raise Exception('Incorrect credentials.')
+            raise exceptions.LoginError('Incorrect credentials.')
 
         # save login tokens
         self.sessionid = self.session.cookies['JSESSIONID']
@@ -90,11 +91,11 @@ class Client:
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
             'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'})
 
-        self.log('CLIENT', 'client sessions initialized.')
+        self.__log('CLIENT', 'client sessions initialized.')
 
     def login_with_token(self, sessionid: str, serverid: str):
 
-        self.log('LOGIN', 'logging in...')
+        self.__log('LOGIN', 'logging in...')
 
         self.sessionid = sessionid
         self.serverid = serverid
@@ -108,16 +109,16 @@ class Client:
                 'title').text == 'iGradePlus SMS':
 
             self.loggedin = True
-            self.log('LOGIN', 'logged in', 'green')
+            self.__log('LOGIN', 'logged in', 'green')
 
         else:
-            raise Exception('Incorrect credentials.')
+            raise exceptions.LoginError('Incorrect credentials.')
 
         self.aiosession = ClientSession(headers={
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
             'Cookie': f'JSESSIONID={self.sessionid}; SERVERID={self.serverid};'})
 
-        self.log('CLIENT', 'client sessions initialized.')
+        self.__log('CLIENT', 'client sessions initialized.')
 
     def __send_ajax(self, pageid: str, id: str, event: str = '30', return_: bool = False):
 
@@ -272,7 +273,7 @@ class Client:
                 'event': '30'
             }).text
 
-    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: str = '', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: tuple = (), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         # name filter will get all assignments that include the string given. it is not case-sensitive and removes spaces and underscores.
         # grade filter is two numbers from 0+. example: '50-100' gets all assignments from 50 to 100. assignments with null grades are always filtered if this filter is set.
@@ -281,56 +282,13 @@ class Client:
         # due filter gets assignments that match in between two dates. example: ('2023.4.1', '2023.5.1'). items in the tuple can also be 'now' for the current date.
         # assigned filter is the same as above, with assigned dates
 
-        # better algorithm - covers all edge cases
-        def is_past(date: str, due_in: int):
-
-            try:
-                date = list(date.split('.'))
-                now = list(str(datetime(*localtime()[:6]) + timedelta(days=due_in)).split(' ')[0].split('-'))
-
-                for j in range(3):
-                    now[j] = int(now[j])
-
-                for j in range(3):
-                    date[j] = int(date[j])
-
-            except ValueError:
-                return None
-
-            if now[0] > date[0]:
-                return True
-
-            elif now[0] == date[0] and now[1] > date[1]:
-                return True
-
-            elif now[0] == date[0] and now[1] == date[1] and now[2] > date[2]:
-                return True
-
-            return False
-
-        def is_date_between(start_date: str, end_date: str, check_date: str):
-
-            if start_date.lower() == 'now':
-                start_date = datetime.now().strftime('%Y.%m.%d')
-
-            if end_date.lower() == 'now':
-                end_date = datetime.now().strftime('%Y.%m.%d')
-
-            return datetime.strptime(start_date, '%Y.%m.%d') <= datetime.strptime(check_date, '%Y.%m.%d') <= datetime.strptime(end_date, '%Y.%m.%d')
-
-        def is_between(date: str, days: int):
-            return is_past(date, days + 1) and (not is_past(date, 0))
-
-        def clean(content: str):
-
-            return content.lower().replace(' ', '').replace('_', '')
 
         html = self.__get_assignments_raw(get_type)
 
         elements = []
         links = []
 
-        self.log('CLIENT', f'getting {assignment_type} attachments.')
+        self.__log('CLIENT', f'getting {assignment_type} attachments.')
 
         soup = BeautifulSoup(html, 'lxml')
         i = 0
@@ -344,7 +302,7 @@ class Client:
                 # NAME ------
                 assignment_name = sections[0].text
 
-                if name.lower().replace(' ', '') not in assignment_name.lower().replace(' ', ''):
+                if not search(name, assignment_name):
                     # print(name.lower().replace(' ', '') + ' is not in ' + assignment_name.lower().replace(' ', ''))
                     elements.pop()
                     continue
@@ -359,18 +317,24 @@ class Client:
                     assignment_letter = sections[3].text[-2:-1]
 
                 if grade:
-                    if assignment_percent is None:
+                    try:
+                        continue_: bool = not grade[2]
+                    except IndexError:
+                        continue_ = True
+
+                    if (assignment_percent is None) and not continue_:
+                        pass
+                    elif assignment_percent is None:
                         elements.pop()
                         continue
-
-                    if not (float(grade.split('-')[0]) <= float(assignment_percent[:-1]) <= float(grade.split('-')[1])):
+                    elif not (float(grade[0]) <= float(assignment_percent[:-1]) <= float(grade[1])):
                         elements.pop()
                         continue
 
                 # TYPE --------
                 this_assignment_type = sections[7].contents[0].get('title')
 
-                if assignment_type and (clean(assignment_type) != clean(this_assignment_type)):
+                if assignment_type and (utils.clean(assignment_type) != utils.clean(this_assignment_type)):
 
                     elements.pop()
                     continue
@@ -380,7 +344,7 @@ class Client:
                 assignment_category_abbr = sections[9].contents[0].text
 
                 if category:
-                    if (clean(category) not in clean(assignment_category_abbr)) and (clean(category) not in clean(assignment_category_abbr)):
+                    if not search(category, assignment_category_abbr) and not search(category, assignment_category_full):
 
                         elements.pop()
                         continue
@@ -393,7 +357,7 @@ class Client:
                 else:
                     assignment_class = sections[8].text
 
-                if class_ and (clean(class_) not in clean(assignment_class)):
+                if class_ and not search(class_, assignment_class):
 
                     elements.pop()
                     continue
@@ -405,13 +369,22 @@ class Client:
                     assignment_due = None
 
                 if due:
-                    if assignment_due is None or assignment_due == '':
+                    try:
+                        continue_ = not due[2]
+                    except IndexError:
+                        continue_ = True
+
+                    if (assignment_due is None or assignment_due == '') and continue_:
                         elements.pop()
+                        print(1)
                         continue
-
-                    if not is_date_between(due[0], due[1], assignment_due):
+                    elif (assignment_due is None or assignment_due == '') and not continue_:
+                        print(2)
+                        pass
+                    elif not utils.is_date_between(due[0], due[1], assignment_due):
 
                         elements.pop()
+                        print(3)
                         continue
 
                 # ASSIGNED ---------
@@ -421,11 +394,17 @@ class Client:
                     assignment_assigned = None
 
                 if assigned:
-                    if assignment_assigned is None or assignment_assigned == '':
+                    try:
+                        continue_ = not assigned[2]
+                    except IndexError:
+                        continue_ = True
+
+                    if (assignment_assigned is None or assignment_assigned == '') and continue_:
                         elements.pop()
                         continue
-
-                    if not is_date_between(assigned[0], assigned[1], assignment_assigned):
+                    elif (assignment_assigned is None or assignment_assigned == '') and not continue_:
+                        pass
+                    elif not utils.is_date_between(assigned[0], assigned[1], assignment_assigned):
 
                         elements.pop()
                         continue
@@ -484,45 +463,7 @@ class Client:
                 else:
                     elements[i]['grade']['value'] = int(sections[10].text.split('.')[0])
 
-                # try:
-                #     date = elements[i]['due'].split('.')
-                #     now = time.strftime("%Y.%m.%d", time.localtime()).split('.')
-                #
-                #     for j in range(3):
-                #         now[j] = int(now[j])
-                #
-                #     for j in range(3):
-                #         date[j] = int(date[j])
-                #
-                #     if now[0] > date[0] or now[1] > date[1] or now[2] > date[2]:
-                #         elements[i]['details'] = {'past_due': True}
-                #
-                #     else:
-                #         elements[i]['details'] = {'past_due': False}
-                #
-                # except ValueError:
-                #     elements[i]['details'] = {'past_due': None}
-
-                elements[i]['details'] = {'past_due': is_past(elements[i]['due'], 0)}
-
-                # try:
-                #     date = elements[i]['assigned'].split('.')
-                #     now = time.strftime("%Y.%m.%d", time.localtime()).split('.')
-                #
-                #     for j in range(3):
-                #         now[j] = int(now[j])
-                #
-                #     for j in range(3):
-                #         date[j] = int(date[j])
-                #
-                #     if now[0] > date[0] or now[1] > date[1] or now[2] > date[2]:
-                #         elements[i]['details']['has_been_assigned'] = True
-                #
-                #     else:
-                #         elements[i]['details']['has_been_assigned'] = False
-                #
-                # except ValueError:
-                #     elements[i]['details']['has_been_assigned'] = None
+                elements[i]['details'] = {'past_due': utils.is_past(elements[i]['due'], 0)}
 
                 if elements[i]['grade']['points'] is None:
                     elements[i]['details']['graded'] = False
@@ -530,10 +471,10 @@ class Client:
                 else:
                     elements[i]['details']['graded'] = True
 
-                elements[i]['details']['has_been_assigned'] = is_past(elements[i]['assigned'], 0)
+                elements[i]['details']['has_been_assigned'] = utils.is_past(elements[i]['assigned'], 0)
                 elements[i]['details']['in_class_assignment'] = elements[i]['due'] == elements[i]['assigned']
-                elements[i]['details']['due_tomorrow'] = is_between(elements[i]['due'], 1)
-                elements[i]['details']['due_in_week'] = is_between(elements[i]['due'], 8)
+                elements[i]['details']['due_tomorrow'] = utils.is_between(elements[i]['due'], 1)
+                elements[i]['details']['due_in_week'] = utils.is_between(elements[i]['due'], 8)
 
 
                 if get_attachments:
@@ -545,7 +486,7 @@ class Client:
             except AttributeError:
 
                 # if assignment invalid
-                self.log('ERROR', 'invalid assignment. removing from list.', 'yellow')
+                self.__log('ERROR', 'invalid assignment. removing from list.', 'yellow')
                 elements.pop()
                 break
 
@@ -554,7 +495,7 @@ class Client:
             response = self.__get_all_attachments(links)
             i = 0
 
-            self.log('CLIENT', 'getting assignment page info.')
+            self.__log('CLIENT', 'getting assignment page info.')
 
             for assignment in response:
 
@@ -564,26 +505,26 @@ class Client:
 
                 i += 1
 
-        self.log('CLIENT', 'data returned successfully.', 'green')
+        self.__log('CLIENT', 'data returned successfully.', 'green')
 
         return elements
 
-    def get_all_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_all_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
         return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
 
-    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
         return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
 
-    def get_recent_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_recent_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
         return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
 
-    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade='', assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
 
         self.__verify()
         return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
@@ -698,11 +639,12 @@ class Client:
             return
 
         else:
-            raise Exception("Client is not logged in.")
+            raise exceptions.LoginError("Client is not logged in.")
 
     def get_attachments(self, assignment_id):
 
-        self.log('CLIENT', 'getting attachments.')
+        self.__verify()
+        self.__log('CLIENT', 'getting attachments.')
 
         html = self.session.get('https://igradeplus.com/student/assignment?id=' + assignment_id).text
         soup = BeautifulSoup(html, 'lxml')
@@ -751,9 +693,9 @@ class Client:
 
     def __get_all_attachments(self, links: list):
 
-        async def stuff(url):
+        async def mainloop(url):
 
-            self.log('CLIENT', 'getting extra assignment info.')
+            self.__log('CLIENT', 'getting extra assignment info.')
 
             html = await self.aiosession.get(url)
             html = await html.text()
@@ -807,16 +749,16 @@ class Client:
                     elements['attachments'][i][
                         'link'] = BeautifulSoup(await wait.text(), 'lxml').find('a').get('href')
                 except:
-                    self.log('ERROR', 'error occurred while sending oorian request.', 'yellow')
+                    self.__log('ERROR', 'error occurred while sending oorian request.', 'yellow')
 
-            self.log('CLIENT', 'extra assignment info returned successfully.', 'green')
+            self.__log('CLIENT', 'extra assignment info returned successfully.', 'green')
             return elements
 
         async def main():
 
             tasks = []
             for url in links:
-                tasks.append(ensure_future(stuff(url)))
+                tasks.append(ensure_future(mainloop(url)))
 
             responses = await gather(*tasks)
             return responses
@@ -831,6 +773,8 @@ class Client:
         return response
 
     def get_all_events(self):
+
+        self.__verify()
 
         html = self.session.get("https://igradeplus.com/student/communications/calendar").text
         pageid = html[31:67]
@@ -849,14 +793,6 @@ class Client:
         pageid = self.__get_pageid("https://igradeplus.com/student/communications/calendar")
 
         html = self.__send_ajax(pageid, '12', return_=True)
-
-        # html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-        #     'callback': '',
-        #     'pageid': pageid,
-        #     'sourceid': '12',
-        #     'targetid': '12',
-        #     'event': '30'
-        # }).text
 
         elements = []
         soup = BeautifulSoup(html, 'lxml')
@@ -884,6 +820,8 @@ class Client:
 
     def get_upcoming_events(self):
 
+        self.__verify()
+
         html = self.session.get("https://igradeplus.com/student/communications/calendar").text
         pageid = html[31:67]
         targetid = BeautifulSoup(html, 'lxml').find('div', style='visibility: visible; position: relative; ').get('id')
@@ -901,14 +839,6 @@ class Client:
         pageid = self.__get_pageid("https://igradeplus.com/student/communications/calendar")
 
         html = self.__send_ajax(pageid, '12', return_=True)
-
-        # html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-        #     'callback': '',
-        #     'pageid': pageid,
-        #     'sourceid': '12',
-        #     'targetid': '12',
-        #     'event': '30'
-        # }).text
 
         elements = []
         soup = BeautifulSoup(html, 'lxml')
@@ -951,6 +881,8 @@ class Client:
         return self.session.get(url).text[31:67]
 
     def get_announcements(self, get_link=False):
+
+        self.__verify()
 
         if not get_link:
             pageid = self.__get_pageid('https://igradeplus.com/student/communications/bulletinboard')
@@ -1013,12 +945,16 @@ class Client:
 
     def get_announcement_content(self, announcement_id, html=True):
 
+        self.__verify()
+
         if html:
             return str(BeautifulSoup(self.session.get('https://igradeplus.com/student/communications/bulletin?id=' + announcement_id).text, 'xml').find('div', attrs={'class': 'fr-view'}))
 
         return str(BeautifulSoup(self.session.get('https://igradeplus.com/student/communications/bulletin?id=' + announcement_id).text, 'xml').find('div', attrs={'class': 'fr-view'}).text)
 
     def get_event_content(self, event_id):
+
+        self.__verify()
 
         data = {}
 
@@ -1033,8 +969,10 @@ class Client:
 
     def download_attachments(self, assignment_id: str, folder_location: str = 'data'):
 
+        self.__verify()
+
         response = []
-        self.log('CLIENT', 'downloading attachments...')
+        self.__log('CLIENT', 'downloading attachments...')
 
         data = self.get_attachments(assignment_id)['attachments']
 
@@ -1050,10 +988,12 @@ class Client:
                 f.write(self.session.get(data[i]['link']).content)
                 response.append(f'{folder_location}/{data[i]["name"].replace(" ", "_")}')
 
-        self.log('CLIENT', 'download successful', 'green')
+        self.__log('CLIENT', 'download successful', 'green')
         return response
 
     def get_teachers_info(self):
+
+        self.__verify()
 
         data = []
 
@@ -1099,62 +1039,37 @@ class Client:
             await self.aiosession.close()
 
         # self.aiosession.close()
-        self.log('CLIENT', 'closing client...')
+        self.__log('CLIENT', 'closing client...')
         self.session.close()
 
         run(await_close())
-        self.log('CLIENT', 'client closed.', 'green')
+        self.__log('CLIENT', 'client closed.', 'green')
 
     def get_attendance(self):
 
-        def get_rows(section):
-
-            data = []
-            i = 0
-
-            for row in section.find_all('tr', style='background: #FFFFFF; '):
-                column = row.find_all('td')
-                data.append({})
-
-                data[i]['class'] = column[0].text
-                data[i]['data'] = {}
-                data[i]['data']['present'] = int(column[1].text)
-                data[i]['data']['absent'] = int(column[2].text)
-                data[i]['data']['tardy'] = int(column[3].text)
-                data[i]['data']['excused'] = int(column[4].text)
-                data[i]['data']['virtual'] = int(column[5].text)
-
-                i += 1
-
-            return data
+        self.__verify()
 
         pageid = self.__get_pageid('https://igradeplus.com/student/attendance')
 
         html = self.__send_ajax(pageid, '166', return_=True)
 
-        # html = self.session.post('https://igradeplus.com/OorianAjaxEventHandler', data={
-        #     'callback': '',
-        #     'pageid': pageid,
-        #     'sourceid': '166',
-        #     'targetid': '166',
-        #     'event': '30'
-        # }).text
-
         soup = BeautifulSoup(html, 'lxml')
         data = {}
 
         section = soup.find('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')
-        data['total'] = get_rows(section)
+        data['total'] = utils.attendance_get_rows(section)
 
         section = soup.find_all('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')[1]
-        data['s1'] = get_rows(section)
+        data['s1'] = utils.attendance_get_rows(section)
 
         section = soup.find_all('tbody', style='overflow-x: hidden; overflow-y: scroll; border-bottom-style: solid; border-bottom-color: #EEEEEE; border-bottom-width: 1px; ')[2]
-        data['s2'] = get_rows(section)
+        data['s2'] = utils.attendance_get_rows(section)
 
         return data
 
     def get_class_performance(self):
+
+        self.__verify()
 
         async def get_performance(link, teacher, id):
 
@@ -1176,9 +1091,9 @@ class Client:
                 data = row.find_all('td')
 
                 elements[i]['type'] = data[0].text
-                elements[i]['s1'] = data[1].text[:-2]
-                elements[i]['s2'] = data[2].text[:-2]
-                elements[i]['total'] = data[3].text[:-2]
+                elements[i]['s1'] = data[1].text[:-3]
+                elements[i]['s2'] = data[2].text[:-3]
+                elements[i]['total'] = data[3].text[:-3]
 
                 i += 1
 
