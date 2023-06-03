@@ -75,4 +75,4 @@ what needs to be done in order to install properly.
    todo
    changelog
 
-
+Version 2.5.2

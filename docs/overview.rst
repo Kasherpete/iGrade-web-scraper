@@ -38,3 +38,5 @@ repo <https://github.com/Kasherpete/Igrade-web-scraper/issues>`__.
    <a class="github-button" href="https://github.com/Kasherpete/Igrade-web-scraper/issues" data-icon="octicon-issue-opened" data-size="large" data-show-count="true" aria-label="Issue Kasherpete/Igrade-web-scraper on GitHub">Issue</a>
    <p></p>
    <p></p>
+
+Current version: **2.5.2**

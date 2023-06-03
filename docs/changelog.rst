@@ -1,6 +1,15 @@
 Changelog
 =========
 
+Current version: **2.5.2**
+
+.. warning::
+
+   This project has `Semantic Versioning <https://semver.org/>`_ issues with previous
+   builds and releases on GitHub. However, this has recently been fixed, and has been fixed
+   since before its Pypi release - therefore this should not have any affect on your
+   development.
+
 2023.6.3
 ~~~~~~~~
 

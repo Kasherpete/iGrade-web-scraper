@@ -12,11 +12,11 @@ LICENSE_URL = 'https://opensource.org/licenses/MIT'
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    'aiohttp>=2.1.4',
-    'requests>=2.1.1',
-    'beautifulsoup4>=3.12.2',
+    'aiohttp>=3.0.0',
+    'requests>=2.0.0',
+    'beautifulsoup4>=4.0.0',
     'colorama>=0.2.0',
-    'lxml>=3.0.0',
+    'lxml>=4.0.0',
 ]
 
 # Additional classifiers
