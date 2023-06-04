@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 # Package metadata
 NAME = 'igrade'
-VERSION = '2.5.2'
+VERSION = '2.6.0'
 DESCRIPTION = 'An unofficial wrapper for iGradePlus Student Management Systems.'
 URL = 'https://github.com/Kasherpete/Igrade-web-scraper'
 AUTHOR = 'Keagan Peterson'

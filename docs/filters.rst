@@ -208,3 +208,61 @@ remember this works for the due **and** assigned filter.
 
 This code **WILL** get assignments with null due dates. The default is ``False``,
 but only when you are using the filter.
+
+Details Filter
+--------------
+
+This filter is for finding assignments that match criteria from the details
+section of the assignment.
+
+Past Due
+~~~~~~~~
+
+This will get assignments that are or aren't past due. This is an example:
+
+.. code:: python
+
+   client.get_all_assignments(past_due=true)
+
+.. note::
+
+   Past due does not mean that the assignment has not been graded.
+   Past due means that the due date has past, regardless of the
+   grade status.
+
+In Class Assignment
+~~~~~~~~~~~~~~~~~~~
+
+This will return assignments that are or aren't an in-class assignment.
+
+.. code:: python
+
+   client.get_all_assignments(in_class=False)
+
+This will return all assignment that have not been done in-class.
+
+.. warning::
+
+   If you set the ``in_class`` parameter to ``True``, not only will
+   it return in-class assignments, but it will also return assignments
+   with null ``assigned`` and ``due`` dates. This is because both the due
+   and assigned dates are the same.
+
+Due Tomorrow
+~~~~~~~~~~~~
+
+This will check if an assignment is due one day from today.
+
+.. code:: python
+
+   client.get_upcoming_assignments(due_tomorrow=True)
+
+Due in a Week
+~~~~~~~~~~~~~
+
+If this parameter is set, the module will filter out anything that
+is or isn't due in a week.
+
+.. code:: python
+
+   client.get_upcoming_assignments(due_in_week=True)

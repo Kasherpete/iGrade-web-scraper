@@ -64,6 +64,15 @@ that is not formatted in the YYYY.MM.DD format, or something similar -
 that is the most common FilterError situation. An example would be
 ``igrade.exceptions.FilterError: time data '2022.13.27' does not match format '%Y.%m.%d'``.
 
+Client Not Closed
+~~~~~~~~~~~~~~~~~
+
+One common error is that you often forget to close the Client object.
+Don't worry, it's a super simple fix, everyone forgets to do this
+sometimes. If you get this warning, all you have to do is add
+``client.close()`` to the end of your code, when your program
+quits.
+
 Other Exceptions
 ----------------
 

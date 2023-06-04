@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Current version: **2.5.2**
+Current version: **2.6.0**
 
 .. warning::
 
@@ -12,6 +12,8 @@ Current version: **2.5.2**
 
 2023.6.3
 ~~~~~~~~
+
+- **2.6.0** - Added event and announcement filters; bug fixes; documentation update; assignment filter update
 
 - **2.5.2** - Regex search for filters; exceptions rework; fixed binary bytes showing up in
   get_class_performance(); now+{days} date filter addition; grade filter update; added license

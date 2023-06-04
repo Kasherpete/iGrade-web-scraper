@@ -1,4 +1,4 @@
-from re import search
+import re
 from asyncio import gather, ensure_future, get_event_loop, run
 from re import search
 from aiohttp import ClientSession
@@ -273,7 +273,7 @@ class Client:
                 'event': '30'
             }).text
 
-    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: tuple = (), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def __get_assignments(self, get_type: str, get_attachments: bool = False, name: str = '', grade: tuple = (), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = (), past_due: bool = None, in_class: bool = None, due_tomorrow: bool = None, due_in_week: bool = None):
 
         # name filter will get all assignments that include the string given. it is not case-sensitive and removes spaces and underscores.
         # grade filter is two numbers from 0+. example: '50-100' gets all assignments from 50 to 100. assignments with null grades are always filtered if this filter is set.
@@ -376,15 +376,14 @@ class Client:
 
                     if (assignment_due is None or assignment_due == '') and continue_:
                         elements.pop()
-                        print(1)
                         continue
+
                     elif (assignment_due is None or assignment_due == '') and not continue_:
-                        print(2)
                         pass
+
                     elif not utils.is_date_between(due[0], due[1], assignment_due):
 
                         elements.pop()
-                        print(3)
                         continue
 
                 # ASSIGNED ---------
@@ -402,8 +401,10 @@ class Client:
                     if (assignment_assigned is None or assignment_assigned == '') and continue_:
                         elements.pop()
                         continue
+
                     elif (assignment_assigned is None or assignment_assigned == '') and not continue_:
                         pass
+
                     elif not utils.is_date_between(assigned[0], assigned[1], assignment_assigned):
 
                         elements.pop()
@@ -463,7 +464,15 @@ class Client:
                 else:
                     elements[i]['grade']['value'] = int(sections[10].text.split('.')[0])
 
-                elements[i]['details'] = {'past_due': utils.is_past(elements[i]['due'], 0)}
+                assignment_past_due = utils.is_past(elements[i]['due'], 0)
+
+                if past_due is not None:
+                    if assignment_past_due is not past_due:
+                        elements.pop()
+                        continue
+
+                elements[i]['details'] = {'past_due': assignment_past_due}
+
 
                 if elements[i]['grade']['points'] is None:
                     elements[i]['details']['graded'] = False
@@ -472,9 +481,36 @@ class Client:
                     elements[i]['details']['graded'] = True
 
                 elements[i]['details']['has_been_assigned'] = utils.is_past(elements[i]['assigned'], 0)
-                elements[i]['details']['in_class_assignment'] = elements[i]['due'] == elements[i]['assigned']
-                elements[i]['details']['due_tomorrow'] = utils.is_between(elements[i]['due'], 1)
-                elements[i]['details']['due_in_week'] = utils.is_between(elements[i]['due'], 8)
+
+
+                assignment_in_class = elements[i]['due'] == elements[i]['assigned']
+
+                if in_class is not None:
+                    if assignment_in_class is not in_class:
+                        elements.pop()
+                        continue
+
+                elements[i]['details']['in_class_assignment'] = assignment_in_class
+
+
+                assignment_due_tomorrow = utils.is_between(elements[i]['due'], 1)
+
+                if due_tomorrow is not None:
+                    if assignment_due_tomorrow is not due_tomorrow:
+                        elements.pop()
+                        continue
+
+                elements[i]['details']['due_tomorrow'] = assignment_due_tomorrow
+
+
+                assignment_due_in_week = utils.is_between(elements[i]['due'], 8)
+
+                if due_in_week is not None:
+                    if assignment_due_in_week is not due_in_week:
+                        elements.pop()
+                        continue
+
+                elements[i]['details']['due_in_week'] = assignment_due_in_week
 
 
                 if get_attachments:
@@ -501,6 +537,7 @@ class Client:
 
                 elements[i]['attachments'] = assignment['attachments']
                 elements[i]['description'] = assignment['description']
+
                 elements[i]['supplemental_info'] = assignment['supplemental_info']
 
                 i += 1
@@ -509,25 +546,25 @@ class Client:
 
         return elements
 
-    def get_all_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_all_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = (), past_due: bool = None, in_class: bool = None, due_tomorrow: bool = None, due_in_week: bool = None):
 
         self.__verify()
-        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
+        return self.__get_assignments('all', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned, past_due=past_due, in_class=in_class, due_tomorrow=due_tomorrow, due_in_week=due_in_week)
 
-    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
-
-        self.__verify()
-        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
-
-    def get_recent_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_upcoming_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = (), past_due: bool = None, in_class: bool = None, due_tomorrow: bool = None, due_in_week: bool = None):
 
         self.__verify()
-        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
+        return self.__get_assignments('upcoming', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned, past_due=past_due, in_class=in_class, due_tomorrow=due_tomorrow, due_in_week=due_in_week)
 
-    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = ()):
+    def get_recent_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = (), past_due: bool = None, in_class: bool = None, due_tomorrow: bool = None, due_in_week: bool = None):
 
         self.__verify()
-        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned)
+        return self.__get_assignments('recent', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned, past_due=past_due, in_class=in_class, due_tomorrow=due_tomorrow, due_in_week=due_in_week)
+
+    def get_problematic_assignments(self, get_attachments: bool = False, name='', grade=(), assignment_type: str = '', category: str = '', class_: str = '', due: tuple = (), assigned: tuple = (), past_due: bool = None, in_class: bool = None, due_tomorrow: bool = None, due_in_week: bool = None):
+
+        self.__verify()
+        return self.__get_assignments('problematic', get_attachments=get_attachments, name=name, grade=grade, assignment_type=assignment_type, category=category, class_=class_, due=due, assigned=assigned, past_due=past_due, in_class=in_class, due_tomorrow=due_tomorrow, due_in_week=due_in_week)
 
     def get_account_info(self):
 
@@ -772,7 +809,7 @@ class Client:
 
         return response
 
-    def get_all_events(self):
+    def get_all_events(self, title: str = ''):
 
         self.__verify()
 
@@ -804,7 +841,7 @@ class Client:
 
             for time in section.find_all('div')[::2]:
 
-                title = time.parent.next_sibling.next_sibling
+                title_html = time.parent.next_sibling.next_sibling
                 if time.text == 'All Day Event' or time.text == 'Time Not Specified':
                     start_time = 'All Day'
                     end_time = 'All Day'
@@ -812,13 +849,19 @@ class Client:
                 else:
                     start_time = time.text.split('to')[0][:-2]
                     end_time = time.text.split('to')[1][2:]
-                elements.append({'title': title.text, 'link': f"https://igradeplus.com/student/communications/{title.find().get('href')}", 'id': title.find().get('href').split('?id=')[1], 'date': day.text, 'start_time': start_time, 'end_time': end_time})
+
+                event_title = title_html.text
+
+                if not re.search(utils.clean(title), utils.clean(event_title)):
+                    continue
+
+                elements.append({'title': event_title, 'link': f"https://igradeplus.com/student/communications/{title_html.find().get('href')}", 'id': title_html.find().get('href').split('?id=')[1], 'date': day.text, 'start_time': start_time, 'end_time': end_time})
 
             i += 1
 
         return elements
 
-    def get_upcoming_events(self):
+    def get_upcoming_events(self, title: str = '', text_includes: str = ''):
 
         self.__verify()
 
@@ -847,7 +890,13 @@ class Client:
         for section in soup.find_all('td', style='vertical-align: top; overflow: hidden; height: 100%; padding-top: 0.0px; padding-right: 0.0px; padding-bottom: 0.0px; padding-left: 0.0px; '):
             elements.append({})
 
-            elements[i]['title'] = section.find('span').text
+            event_title = section.find('span').text
+
+            if not re.search(utils.clean(title), utils.clean(event_title)):
+                elements.pop()
+                continue
+
+            elements[i]['title'] = event_title
             elements[i]['date'] = section.find('div', style='width: 250.0px; padding-right: 15.0px; ').text
 
             text = section.find('span', style='color: #000000; ').text
@@ -869,6 +918,10 @@ class Client:
 
             data = data[:-2]
 
+            if not re.search(utils.clean(text_includes), utils.clean(data)):
+                elements.pop()
+                continue
+
             elements[i]['content'] = {'text': data, 'html': element.prettify()}
 
             i += 1
@@ -880,7 +933,7 @@ class Client:
         # self.log('CLIENT', 'obtaining pageID')
         return self.session.get(url).text[31:67]
 
-    def get_announcements(self, get_link=False):
+    def get_announcements(self, get_link=False, title: str = '', author: str = '', text_includes: str = ''):
 
         self.__verify()
 
@@ -898,17 +951,34 @@ class Client:
 
                 data.append({})
 
-                data[i]['title'] = announcement.find('div', style='font-size: 15px; line-height: 200%; font-weight: bold; color: #404040; ').text
+                announcement_title = announcement.find('div', style='font-size: 15px; line-height: 200%; font-weight: bold; color: #404040; ').text
+
+                if not re.search(utils.clean(title), utils.clean(announcement_title)):
+                    data.pop()
+                    continue
+
+                data[i]['title'] = announcement_title
                 data[i]['date'] = announcement.find('div', style='color: #808080; font-size: 13px; line-height: 180%; ').text
 
                 try:
-                    data[i]['author'] = announcement.find('div', style='color: #808080; font-size: 14px; line-height: 200%; ').text
+                    announcement_author = announcement.find('div', style='color: #808080; font-size: 14px; line-height: 200%; ').text
 
                 except AttributeError:
-                    data[i]['author'] = announcement.find('div', style='white-space: nowrap; text-overflow: ellipsis; color: #808080; font-size: 14px; line-height: 200%; ').text
+                    announcement_author = announcement.find('div', style='white-space: nowrap; text-overflow: ellipsis; color: #808080; font-size: 14px; line-height: 200%; ').text
 
+                if not re.search(utils.clean(author), utils.clean(announcement_author)):
+                    data.pop()
+                    continue
 
-                data[i]['content'] = {'text': announcement.find('div', attrs={'class': 'fr-view'}).text, 'html': str(announcement.find('div', attrs={'class': 'fr-view'}).prettify()).replace('display: none; ', '')}
+                data[i]['author'] = announcement_author
+
+                announcement_text = announcement.find('div', attrs={'class': 'fr-view'}).text
+
+                if not re.search(utils.clean(text_includes), utils.clean(announcement_text)):
+                    data.pop()
+                    continue
+
+                data[i]['content'] = {'text': announcement_text, 'html': str(announcement.find('div', attrs={'class': 'fr-view'}).prettify()).replace('display: none; ', '')}
 
                 i += 1
 
@@ -925,19 +995,32 @@ class Client:
 
                 data.append({})
 
-                data[i]['title'] = announcement.find('a').text
+                announcement_title = announcement.find('a').text
+
+                if not re.search(utils.clean(title), utils.clean(announcement_title)):
+                    data.pop()
+                    continue
+
+                data[i]['title'] = announcement_title
                 data[i]['link'] = announcement.find('a').get('href')
                 data[i]['id'] = announcement.find('a').get('href').split('?id=')[1]
                 data[i]['date'] = announcement.find('div', style='max-width: 100%; font-size: 14px; margin-left: 0.0px; line-height: 180%; font-weight: normal; color: #000000; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; ').text
 
-                try:
-                    data[i]['author'] = announcement.find('div', style='max-width: 100%; font-size: 14px; margin-left: 0.0px; line-height: 180%; font-weight: normal; color: #000000; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; ').text
+                announcement_author = announcement.find_all('div', style='max-width: 100%; font-size: 14px; margin-left: 0.0px; line-height: 180%; font-weight: normal; color: #000000; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; ')[1].text
 
-                except AttributeError:
-                    data[i]['author'] = 'ERROR'
-                    # data[i]['author'] = announcement.find('div', style='white-space: nowrap; text-overflow: ellipsis; color: #808080; font-size: 14px; line-height: 200%; ').text
+                if not re.search(utils.clean(author), utils.clean(announcement_author)):
+                    data.pop()
+                    continue
 
-                data[i]['content'] = {'text': announcement.find('div', attrs={'class': 'fr-view'}).text, 'html': str(announcement.find('div', attrs={'class': 'fr-view'}).prettify())}
+                data[i]['author'] = announcement_author
+
+                announcement_text = announcement.find('div', attrs={'class': 'fr-view'}).text
+
+                if not re.search(utils.clean(text_includes), utils.clean(announcement_text)):
+                    data.pop()
+                    continue
+
+                data[i]['content'] = {'text': announcement_text, 'html': str(announcement.find('div', attrs={'class': 'fr-view'}).prettify())}
 
                 i += 1
 

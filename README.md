@@ -74,9 +74,11 @@ since before its Pypi release.
 Note: This changelog does not include every version. See the full changelog
 [here](https://igrade-web-scraper.readthedocs.io/en/latest/changelog.html)
 
-Current version: **2.5.2**
+Current version: **2.6.0**
 
 ### 2023.6.3
+* ***2.6.0*** - Added event and announcement filters; bug fixes; documentation update; assignment filter update
+
 * ***2.5.2*** - Regex search for filters; exceptions rework; fixed binary bytes showing up in
 get_class_performance(); now+{days} date filter addition; grade filter update; added license
 

@@ -48,6 +48,7 @@ what needs to be done in order to install properly.
    getting_announcements
    getting_events
    ids
+   exceptions
    attachments
 
 .. toctree::
@@ -55,6 +56,8 @@ what needs to be done in order to install properly.
    :caption: Filters
 
    filters
+   announcement_filters
+   event_filter
    regex
 
 
@@ -75,4 +78,4 @@ what needs to be done in order to install properly.
    todo
    changelog
 
-Version 2.5.2
+Version **2.6.0**

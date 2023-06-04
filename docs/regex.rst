@@ -1,7 +1,7 @@
 Regex Overview
 ==============
 
-You may have heard regex being mentioned in the previous section. If you
+You may have heard regex being mentioned in the previous two sections. If you
 do not know what regex is, **you can skip past this page**. If you do
 know what it is or would like to learn, here is a quick article on how
 to use it: https://realpython.com/regex-python.
@@ -58,10 +58,15 @@ Using the ``[ ]`` regex “*expression*”, you can also search for things
 that aren’t just numbers. For example, ``[a-z]`` will find any
 characters from a-z. But what if you want to find lowercase and
 uppercase letters? Well, you can use this: ``[a-zA-Z]``, which would
-work with both cases, or even ``[a-zA-Z0-9]`` to get letters or numbers.
+work with both cases, or even ``[a-zA-Z0-9]`` to get any letter or number.
+
+.. code:: python
+
+   re.search('123[a-zA-Z0-9]456', '123t456')
+   # returns True
 
 However, there is also a special character ``.`` that will do
-essentially the same thing. The ``.`` character will find any character
+essentially the same thing as [a-zA-Z0-9]. The ``.`` character will find any character
 in the string you want to find. The last special character I will talk
 about is the ``*`` character. This will find any number of repetitions
 of the character before it. So, ``foo-*bar`` will return True if it
@@ -69,6 +74,11 @@ finds ``foobar``, or ``foo----bar``, because it can have many
 repetitions of the “-” character. One useful way of using it is with the
 dot character so you could search for ``week.*`` and it would return
 anything starting with the string “week”.
+
+.. code:: python
+
+   re.search('foo.*bar', 'foo123bar')
+   # returns True
 
 .. note::
 
