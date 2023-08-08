@@ -1,4 +1,7 @@
 # Overview
+
+### WARNING: This has recently been broken by iGradePlus. Do not worry, I am currently in the process of fixing it.
+
 This module is a project that provides an unofficial wrapper to [**iGradePlus Student Managing Systems**](https://igradeplus.com). Documentation can be found [here](https://igrade-web-scraper.readthedocs.io/en/latest/), **please read it before using!**
 
 [![Documentation Status](https://readthedocs.org/projects/igrade-web-scraper/badge/?version=latest)](https://igrade-web-scraper.readthedocs.io/en/latest/?badge=latest)
