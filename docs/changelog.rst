@@ -1,7 +1,7 @@
 Changelog
 =========
 
-Current version: **2.6.0**
+Current version: **2.7.0**
 
 .. warning::
 
@@ -9,6 +9,13 @@ Current version: **2.6.0**
    builds and releases on GitHub. However, this has recently been fixed, and has been fixed
    since before its Pypi release - therefore this should not have any affect on your
    development.
+
+2023.8.9
+~~~~~~~~
+
+- **2.7.0** - Bug fixes, updated minor version so ``pip install igrade`` gets the working version
+
+- **2.6.1** - Fixed errors with logging in and getting data
 
 2023.6.3
 ~~~~~~~~

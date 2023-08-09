@@ -78,4 +78,4 @@ what needs to be done in order to install properly.
    todo
    changelog
 
-Version **2.6.0**
+Version **2.7.0**

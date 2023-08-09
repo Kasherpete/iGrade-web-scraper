@@ -77,7 +77,13 @@ since before its Pypi release.
 Note: This changelog does not include every version. See the full changelog
 [here](https://igrade-web-scraper.readthedocs.io/en/latest/changelog.html)
 
-Current version: **2.6.0**
+Current version: **2.7.0**
+
+### 2023.8.9
+
+* ***2.7.0*** - Bug fixes, updated minor version so ``pip install igrade`` gets the working version
+
+* ***2.6.1*** - Fixed errors with logging in and getting data
 
 ### 2023.6.3
 * ***2.6.0*** - Added event and announcement filters; bug fixes; documentation update; assignment filter update

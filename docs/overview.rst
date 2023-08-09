@@ -39,4 +39,4 @@ repo <https://github.com/Kasherpete/Igrade-web-scraper/issues>`__.
    <p></p>
    <p></p>
 
-Current version: **2.6.0**
+Current version: **2.7.0**
